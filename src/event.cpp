@@ -68,10 +68,13 @@ RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
 	return RE::BSEventNotifyControl::kContinue;
 }
 
+// TODO put this in the UI class
 bool MES::InputEventProcessor::PreventUIMsg(std::string_view menu, RE::UI_MESSAGE_TYPE type)
 {
+	logger::trace("MES::InputEventProcessor::PreventUIMsg");
+
 	RE::UIMessageQueue* uiMsgQueue = RE::UIMessageQueue::GetSingleton();
-	bool                flag = false;
+	int                 type_as_int = static_cast<std::underlying_type<RE::UI_MESSAGE_TYPE>::type>(type);
 
 	for (auto& msg : uiMsgQueue->messagePool)
 	{
@@ -80,25 +83,26 @@ bool MES::InputEventProcessor::PreventUIMsg(std::string_view menu, RE::UI_MESSAG
 			msg.type == type
 		)
 		{
-			logger::info("Found {} message!!", menu);
+			logger::info("Found {} message with type {}!!", menu, type_as_int);
 
 			RE::UIMessage* pMsg = &msg;
 
 			if (uiMsgQueue->messages.Pop(&pMsg))
-				logger::info("Successfully removed {} open event!!! YAY", menu);
+			{
+				logger::info("Successfully removed {} with event type {}!!! YAY", menu, type_as_int);
+				return true;
+			}
 			else
-				logger::error("Epic fail, couldn't remove {} open event.", menu);
-
-			flag = true;
-			break;
+			{
+				logger::error("Epic fail, couldn't remove {} with event type.", menu, type_as_int);
+				return false;
+			}
 		}
 	}
 
-	if (!flag)
-		logger::warn("Did not remove any {} event!!!", menu);
 
-
-	return flag;
+	logger::warn("Did not remove any {} event!!!", menu);
+	return false;
 }
 
 MES::InputEventProcessor& MES::InputEventProcessor::GetSingleton()
