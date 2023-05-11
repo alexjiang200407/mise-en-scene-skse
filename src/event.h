@@ -3,18 +3,18 @@
 
 namespace MES
 {
-	class EventProcessor
+	class InputEventProcessor
 		: 
 		public RE::BSTEventSink<RE::TESActivateEvent>,
 		public RE::BSTEventSink<RE::InputEvent*>
 	{
 	public:
-		EventProcessor() = default;
-		~EventProcessor() = default;
-		EventProcessor(const EventProcessor&) = delete;
-		EventProcessor(EventProcessor&&) = delete;
-		EventProcessor& operator=(const EventProcessor&) = delete;
-		EventProcessor& operator=(EventProcessor&&) = delete;
+		InputEventProcessor() = default;
+		~InputEventProcessor() = default;
+		InputEventProcessor(const InputEventProcessor&) = delete;
+		InputEventProcessor(InputEventProcessor&&) = delete;
+		InputEventProcessor& operator=(const InputEventProcessor&) = delete;
+		InputEventProcessor& operator=(InputEventProcessor&&) = delete;
 
 	public:
 		// Processes the activate event
@@ -29,27 +29,11 @@ namespace MES
 			RE::BSTEventSource<RE::InputEvent*>*
 		) override;
 
+		// Prevents a UI message from firing
+		bool PreventUIMsg(std::string_view menu, RE::UI_MESSAGE_TYPE type);
+
 		// Returns singleton class
-		static EventProcessor& GetSingleton();
+		static InputEventProcessor& GetSingleton();
 	};
 
-
-	class JournalMenu
-		:
-		public RE::JournalMenu
-	{
-		class RemapHandler 
-			: 
-			public RE::BSTEventSink<RE::InputEvent*>
-		{
-			// Remaps the open journal
-			RE::BSEventNotifyControl ProcessEvent_Hook(
-				RE::InputEvent** ppEvent, RE::BSTEventSource<RE::InputEvent**>* pSrc
-			);
-
-
-			using ProcessEvent_t = decltype(&ProcessEvent_Hook);
-			static inline REL::Relocation<ProcessEvent_t> _ProcessEvent;
-		};
-	};
 }

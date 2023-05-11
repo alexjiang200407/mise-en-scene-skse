@@ -3,7 +3,7 @@
 
 namespace MES 
 {
-    // Initialises Skyrim Lighting Manager
+    // Initialises Mise-En-Scene
     void Init();
     void RegisterEventHandler();
 

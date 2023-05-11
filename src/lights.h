@@ -25,13 +25,14 @@ namespace MES
 		// Creates a light source
 		void StartPositioning();
 		void StopPositioning();
+		void PlaceObj();
+
+
 		static MES::Lighting &GetSingleton();
 
 	private:
 		static constexpr int8_t maxLights = 5;
-
-		// Linked list of all the lights
-		std::list<Light> lights;
+		std::list<Light>        lights;
 
 	public:
 		// If the user is currently positioning a light

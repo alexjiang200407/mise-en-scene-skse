@@ -1,6 +1,6 @@
 #include "event.h"
 
-RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
+RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
 	const RE::TESActivateEvent* event, 
 	RE::BSTEventSource<RE::TESActivateEvent>*
 )
@@ -15,77 +15,95 @@ RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 	if (action->IsPlayerRef())
 	{
 		logger::info("{} activated {}", action->GetBaseObject()->GetName(),
-			activated->GetBaseObject()->GetName());
+			activated->GetBaseObject()->GetName()
+		);
 	}
 
 	return RE::BSEventNotifyControl::kContinue;
 }
 
-RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
-	RE::InputEvent* const* pEvent, 
+RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
+	RE::InputEvent* const*               pEvent, 
 	RE::BSTEventSource<RE::InputEvent*>* pSrc
 )
 {
-	// Does nothing if the event is nullptr
-	if (!pEvent || !*pEvent)
+	if (
+		!pEvent || !*pEvent || 
+		(*pEvent)->GetEventType() != RE::INPUT_EVENT_TYPE::kButton
+	)
 		return RE::BSEventNotifyControl::kContinue;
 
-	RE::InputEvent* event = *pEvent;
 
-	// If button event
-	if (event->GetEventType() == RE::INPUT_EVENT_TYPE::kButton)
-	{
-		RE::ButtonEvent* buttonEvent = event->AsButtonEvent();
-		uint32_t dxScancode = buttonEvent->GetIDCode();
 
-		// Positioning light menu if L (38) is held
-		if (
-			dxScancode == 38 &&
-			buttonEvent->heldDownSecs >= 0.5f &&
-			!MES::Lighting::GetSingleton().isLocked
-		)
-		{
-			MES::Lighting::GetSingleton().StartPositioning();
-		}
-		// Exits out of positioning menu if escape (1) is pressed
-		else if (dxScancode == 1 && MES::Lighting::GetSingleton().isLocked)
-		{
-			//pSrc->pendingUnregisters.clear();
-			/*pSrc->sinks.clear();*/
+	RE::InputEvent*  event = *pEvent;
+	RE::ButtonEvent* buttonEvt = event->AsButtonEvent();
+	uint32_t         dxScancode = buttonEvt->GetIDCode();
 
-			MES::Lighting::GetSingleton().StopPositioning();
-		}
-
-	}
-
-	return RE::BSEventNotifyControl::kContinue;
-}
-
-MES::EventProcessor& MES::EventProcessor::GetSingleton()
-{
-	static MES::EventProcessor singleton;
-
-	return singleton;
-}
-
-RE::BSEventNotifyControl MES::JournalMenu::RemapHandler::ProcessEvent_Hook(
-	RE::InputEvent** ppEvent, RE::BSTEventSource<RE::InputEvent**>* pSrc
-)
-{
-	// If not a button press then does nothing
+	// Positioning light menu if L (38) is held
 	if (
-		!ppEvent || !*ppEvent || 
-		(*ppEvent)->GetEventType() != RE::INPUT_EVENT_TYPE::kButton
+		dxScancode == 38 &&
+		buttonEvt->heldDownSecs >= 0.5f &&
+		!MES::Lighting::GetSingleton().isLocked
 	)
 	{
-		return RE::BSEventNotifyControl::kContinue;
+		MES::Lighting::GetSingleton().StartPositioning();
 	}
 
-	// If the user is currently positioning then doesn't open journal
-	if (MES::Lighting::GetSingleton().isLocked == true)
+	// Exits out of positioning menu if escape (1) is pressed
+	else if (dxScancode == 1 && MES::Lighting::GetSingleton().isLocked)
 	{
-		
+		// Prevents the journal from opening
+		PreventUIMsg(RE::JournalMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow);
+
+		// Stops the positioning
+		MES::Lighting::GetSingleton().StopPositioning();
+	}
+
+	// If E (18) is pressed then places down the light
+	else if (MES::Lighting::GetSingleton().isLocked && dxScancode == 18)
+	{
+		MES::Lighting::GetSingleton().PlaceObj();
 	}
 
 	return RE::BSEventNotifyControl::kContinue;
+}
+
+bool MES::InputEventProcessor::PreventUIMsg(std::string_view menu, RE::UI_MESSAGE_TYPE type)
+{
+	RE::UIMessageQueue* uiMsgQueue = RE::UIMessageQueue::GetSingleton();
+	bool                flag = false;
+
+	for (auto& msg : uiMsgQueue->messagePool)
+	{
+		if (
+			msg.menu == menu &&
+			msg.type == type
+		)
+		{
+			logger::info("Found {} message!!", menu);
+
+			RE::UIMessage* pMsg = &msg;
+
+			if (uiMsgQueue->messages.Pop(&pMsg))
+				logger::info("Successfully removed {} open event!!! YAY", menu);
+			else
+				logger::error("Epic fail, couldn't remove {} open event.", menu);
+
+			flag = true;
+			break;
+		}
+	}
+
+	if (!flag)
+		logger::warn("Did not remove any {} event!!!", menu);
+
+
+	return flag;
+}
+
+MES::InputEventProcessor& MES::InputEventProcessor::GetSingleton()
+{
+	static MES::InputEventProcessor singleton;
+
+	return singleton;
 }

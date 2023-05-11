@@ -13,10 +13,10 @@ void MES::Init()
 
 void MES::RegisterEventHandler()
 {
-    auto& eventProcessor = MES::EventProcessor::GetSingleton();
+    auto& InputEventProcessor = MES::InputEventProcessor::GetSingleton();
 
-    RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESActivateEvent>(&eventProcessor);
-    RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(&eventProcessor);
+    RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESActivateEvent>(&InputEventProcessor);
+    RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(&InputEventProcessor);
 }
 
 void MES::ProcessSysMessages(SKSE::MessagingInterface::Message *msg)

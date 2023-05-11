@@ -10,6 +10,24 @@ void MES::Lighting::StartPositioning()
 {
     logger::trace("MES::Lighting::StartPositioning");
 
+    // If another menu is open then doesn't do anything
+    RE::UI* ui = RE::UI::GetSingleton();
+
+    for (auto &menu : ui->menuStack)
+    {
+        if (
+            !menu->AlwaysOpen() || 
+            menu->Modal() || 
+            menu->FreezeFramePause()
+        )
+        {
+            logger::warn("Another menu is open, cannot start positioning!!!");
+            return;
+        }
+    }
+
+    RE::PlaySound("VOCShoutDragon01AFus");
+    
     int formId = 0x75C32;
 
     // BSLight for ambient??
@@ -21,6 +39,7 @@ void MES::Lighting::StartPositioning()
     // RE::TESForm::GetAllForms();
 
     RE::TESForm* lightBase = RE::TESForm::LookupByID(formId);
+
 
     if (!lightBase)
     {
@@ -35,4 +54,9 @@ void MES::Lighting::StopPositioning()
 {
     logger::trace("MES::Lighting::StopPositioning");
     MES::Lighting::GetSingleton().isLocked = false;
+}
+
+void MES::Lighting::PlaceObj()
+{
+    logger::trace("MES::Lighting::PlaceObj");
 }
