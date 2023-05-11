@@ -9,4 +9,5 @@ namespace MES
 
     // Process SKSE system messages, save / load game etc.
     void ProcessSysMessages(SKSE::MessagingInterface::Message* msg);
+
 }

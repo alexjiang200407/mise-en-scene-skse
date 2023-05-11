@@ -1,4 +1,5 @@
 #include "event.h"
+#include "utility.h"
 
 RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
 	const RE::TESActivateEvent* event, 
@@ -69,12 +70,12 @@ RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
 }
 
 // TODO put this in the UI class
-bool MES::InputEventProcessor::PreventUIMsg(std::string_view menu, RE::UI_MESSAGE_TYPE type)
+bool MES::InputEventProcessor::PreventUIMsg(const std::string_view menu, const RE::UI_MESSAGE_TYPE type)
 {
 	logger::trace("MES::InputEventProcessor::PreventUIMsg");
 
 	RE::UIMessageQueue* uiMsgQueue = RE::UIMessageQueue::GetSingleton();
-	int                 type_as_int = static_cast<std::underlying_type<RE::UI_MESSAGE_TYPE>::type>(type);
+	int32_t				typeInt = MES::EnumToInt32(type);
 
 	for (auto& msg : uiMsgQueue->messagePool)
 	{
@@ -83,18 +84,18 @@ bool MES::InputEventProcessor::PreventUIMsg(std::string_view menu, RE::UI_MESSAG
 			msg.type == type
 		)
 		{
-			logger::info("Found {} message with type {}!!", menu, type_as_int);
+			logger::info("Found {} message with type: {}!!", menu, typeInt);
 
 			RE::UIMessage* pMsg = &msg;
 
 			if (uiMsgQueue->messages.Pop(&pMsg))
 			{
-				logger::info("Successfully removed {} with event type {}!!! YAY", menu, type_as_int);
+				logger::info("Successfully removed {} with event type: {}!!! YAY", menu, typeInt);
 				return true;
 			}
 			else
 			{
-				logger::error("Epic fail, couldn't remove {} with event type.", menu, type_as_int);
+				logger::error("Epic fail, couldn't remove {} with event type: {}.", menu, typeInt);
 				return false;
 			}
 		}

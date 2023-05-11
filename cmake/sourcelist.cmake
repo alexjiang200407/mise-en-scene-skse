@@ -7,4 +7,5 @@ set(sources ${sources}
 	src/event.cpp
 	src/lights.h
 	src/lights.cpp
+	src/utility.h
 )
