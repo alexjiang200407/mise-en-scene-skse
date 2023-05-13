@@ -5,7 +5,9 @@ set(sources ${sources}
 	src/logger.cpp
 	src/event.h
 	src/event.cpp
-	src/lights.h
-	src/lights.cpp
+	src/scene.h
+	src/scene.cpp
 	src/utility.h
+	src/err.cpp
+	src/err.h
 )

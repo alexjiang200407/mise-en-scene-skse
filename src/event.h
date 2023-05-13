@@ -1,5 +1,5 @@
 #include "logger.h"
-#include "lights.h"
+#include "scene.h"
 
 namespace MES
 {

@@ -1,5 +1,5 @@
 #include "MES.h"
-#include "event.h"
+
 
 void MES::Init() 
 {
@@ -23,7 +23,6 @@ void MES::ProcessSysMessages(SKSE::MessagingInterface::Message *msg)
 {
     logger::trace("MES::ProcessSysMessages");
     logger::info("Message Type: {}", msg->type);
-
 
     switch (msg->type)
     {
@@ -50,7 +49,7 @@ void MES::ProcessSysMessages(SKSE::MessagingInterface::Message *msg)
     break;
     case SKSE::MessagingInterface::kSaveGame:
     {
-        logger::info("The game has been saved to {}!", static_cast<const char *>(msg->data));
+        logger::info("The game has been saved to {}!", static_cast<const char*>(msg->data));
     }
     break;
     }
