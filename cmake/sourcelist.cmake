@@ -10,4 +10,6 @@ set(sources ${sources}
 	src/utility.h
 	src/err.cpp
 	src/err.h
+	src/obj.cpp
+	src/obj.h
 )

@@ -34,6 +34,7 @@ void MES::ProcessSysMessages(SKSE::MessagingInterface::Message *msg)
     case SKSE::MessagingInterface::kPostLoadGame:
     {
         logger::info("AHHHHH!!! Just blew a load. Load OK?!! {}", static_cast<bool>(msg->data));
+        MES::Scene::GetSingleton().ClearSceneData();
         MES::RegisterEventHandler();
     }
     break;
@@ -49,6 +50,7 @@ void MES::ProcessSysMessages(SKSE::MessagingInterface::Message *msg)
     break;
     case SKSE::MessagingInterface::kSaveGame:
     {
+        MES::Scene::GetSingleton().SaveSceneData();
         logger::info("The game has been saved to {}!", static_cast<const char*>(msg->data));
     }
     break;
