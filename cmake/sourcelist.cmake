@@ -12,4 +12,6 @@ set(sources ${sources}
 	src/err.h
 	src/obj.cpp
 	src/obj.h
+	src/serialization.h
+	src/serialization.cpp
 )

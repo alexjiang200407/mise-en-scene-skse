@@ -1,6 +1,6 @@
 #pragma once
 #include "event.h"
-#include "utility.h"
+#include "utility.h" 
 
 
 RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
@@ -8,8 +8,8 @@ RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
 	RE::BSTEventSource<RE::TESActivateEvent>*
 )
 {
-	auto* action = event->actionRef.get();
-	auto* activated = event->objectActivated.get();
+	RE::TESObjectREFR* action = event->actionRef.get();
+	RE::TESObjectREFR* activated = event->objectActivated.get();
 
 	if (!action || !activated)
 		return RE::BSEventNotifyControl::kContinue;
@@ -46,26 +46,26 @@ RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
 	if (
 		dxScancode == 38 &&
 		buttonEvt->heldDownSecs >= 0.5f &&
-		!MES::Scene::GetSingleton().isOpen
+		!MES::Scene::GetSingleton()->isOpen
 	)
 	{
-		MES::Scene::GetSingleton().StartPositioning();
+		MES::Scene::GetSingleton()->StartPositioning();
 	}
 
 	// Exits out of positioning menu if escape (1) is pressed
-	else if (dxScancode == 1 && MES::Scene::GetSingleton().isOpen)
+	else if (dxScancode == 1 && MES::Scene::GetSingleton()->isOpen)
 	{
 		// Prevents the journal from opening
 		PreventUIMsg(RE::JournalMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow);
 
 		// Stops the positioning
-		MES::Scene::GetSingleton().StopPositioning();
+		MES::Scene::GetSingleton()->StopPositioning();
 	}
 
 	// If E (18) is pressed then places down the light
-	else if (MES::Scene::GetSingleton().isOpen && dxScancode == 18)
+	else if (MES::Scene::GetSingleton()->isOpen && dxScancode == 18)
 	{
-		MES::Scene::GetSingleton().PlaceObj();
+		MES::Scene::GetSingleton()->PlaceObj();
 	}
 
 	return RE::BSEventNotifyControl::kContinue;
@@ -99,10 +99,10 @@ bool MES::InputEventProcessor::PreventUIMsg(const std::string_view menu, const R
 			{
 				logger::error("Epic fail, couldn't remove {} with event type: {}.", menu, typeInt);
 				return false;
+				
 			}
 		}
 	}
-
 
 	logger::warn("Did not remove any {} event!!!", menu);
 	return false;

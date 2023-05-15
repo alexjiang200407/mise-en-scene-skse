@@ -1,4 +1,5 @@
 #pragma once
+#include "logger.h"
 
 namespace MES
 {
@@ -9,15 +10,14 @@ namespace MES
 		SceneObj(RE::TESObjectREFR* ref);
 		~SceneObj() = default;
 
-		// SceneObj(const SceneObj&) = delete;
-		// SceneObj(SceneObj&&) = delete;
-		// SceneObj& operator=(const SceneObj&) = delete;
-		// SceneObj& operator=(SceneObj&&) = delete;
-
 	public:
 		RE::TESObjectREFR* GetRef() const;
+		void SetRef(RE::TESObjectREFR* ref);
+
+
+		virtual bool Serialize(SKSE::SerializationInterface* intfc) const;
 
 	private:
-		RE::TESObjectREFR* pRef;
+		RE::TESObjectREFR* pRef = nullptr;
 	};
 }

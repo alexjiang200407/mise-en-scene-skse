@@ -1,7 +1,6 @@
 #pragma once
 #include "logger.h"
 #include <list>
-#include <Windows.h>
 #include "obj.h"
 
 namespace MES
@@ -9,7 +8,7 @@ namespace MES
 	class Scene
 	{
 	public:
-		Scene() = default;
+		Scene();
 		~Scene();
 		Scene(const Scene&) = delete;
 		Scene(Scene&&) = delete;
@@ -20,8 +19,11 @@ namespace MES
 		void StartPositioning();
 		void StopPositioning();
 
-		// Saves the scene's data
-		void SaveSceneData() const;
+		// Serializes the scene's data to file
+		void SaveSceneData(SKSE::SerializationInterface* intfc) const;
+
+		// Unserializes Scene Data from file
+		void GetSceneData(SKSE::SerializationInterface* intfc, uint8_t objCount);
 
 		// Clears the scene's data
 		void ClearSceneData();
@@ -72,7 +74,7 @@ namespace MES
 		
 		void PlaceObj();
 
-		static MES::Scene& GetSingleton();
+		static MES::Scene* GetSingleton();
 
 	// Debug
 	public:
