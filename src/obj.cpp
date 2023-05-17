@@ -1,18 +1,30 @@
 #include "obj.h"
 
-MES::SceneObj::SceneObj(RE::TESObjectREFR* pRef)
-	:
-	pRef(pRef)
-{}
+MES::SceneObj::SceneObj(RE::TESObjectREFR* ref)
+    :
+    pRef(ref)
+{
+}
 
 RE::TESObjectREFR* MES::SceneObj::GetRef() const
 {
 	return pRef;
 }
 
-void MES::SceneObj::SetRef(RE::TESObjectREFR* ref)
+void MES::SceneObj::SetRef(RE::TESObjectREFR* rhs)
 {
-    pRef = ref;
+    pRef = rhs;
+}
+
+bool MES::SceneObj::DeleteRef()
+{
+    logger::info("Deleting reference");
+
+    // Marks reference for deletion so it is cleared next time a save is loaded
+    pRef->Disable();
+    pRef->SetDelete(true);
+
+    return true;
 }
 
 bool MES::SceneObj::Serialize(SKSE::SerializationInterface* intfc) const

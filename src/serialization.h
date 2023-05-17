@@ -12,4 +12,6 @@ namespace Serialization
 	void LoadCallback(SKSE::SerializationInterface* intfc);
 
 	void SaveCallback(SKSE::SerializationInterface* intfc);
+
+	void RevertCallback(SKSE::SerializationInterface*);
 }

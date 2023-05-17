@@ -3,7 +3,7 @@
 #include "utility.h" 
 
 
-RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
+RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 	const RE::TESActivateEvent* event, 
 	RE::BSTEventSource<RE::TESActivateEvent>*
 )
@@ -25,7 +25,7 @@ RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
 	return RE::BSEventNotifyControl::kContinue;
 }
 
-RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
+RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 	RE::InputEvent* const*               pEvent, 
 	RE::BSTEventSource<RE::InputEvent*>*
 )
@@ -68,13 +68,32 @@ RE::BSEventNotifyControl MES::InputEventProcessor::ProcessEvent(
 		MES::Scene::GetSingleton()->PlaceObj();
 	}
 
+	// If delete (211) is pressed, removes every object spawned
+	else if (
+		MES::Scene::GetSingleton()->isOpen && dxScancode == 211 &&
+		buttonEvt->heldDownSecs >= 0.5f && buttonEvt->IsUp()
+	)
+	{
+		MES::Scene::GetSingleton()->ClearScene();
+	}
+
+#ifdef _DEBUG
+	else if (
+		MES::Scene::GetSingleton()->isOpen && dxScancode == 199 && 
+		buttonEvt->IsUp()
+	)
+	{
+		MES::Scene::GetSingleton()->PrintAllObj();
+	}
+#endif
+
 	return RE::BSEventNotifyControl::kContinue;
 }
 
 // TODO put this in the UI class
-bool MES::InputEventProcessor::PreventUIMsg(const std::string_view menu, const RE::UI_MESSAGE_TYPE type)
+bool MES::EventProcessor::PreventUIMsg(const std::string_view menu, const RE::UI_MESSAGE_TYPE type)
 {
-	logger::trace("MES::InputEventProcessor::PreventUIMsg");
+	logger::trace("MES::EventProcessor::PreventUIMsg");
 
 	RE::UIMessageQueue* uiMsgQueue = RE::UIMessageQueue::GetSingleton();
 	int32_t				typeInt = MES::EnumToInt32(type);
@@ -108,9 +127,9 @@ bool MES::InputEventProcessor::PreventUIMsg(const std::string_view menu, const R
 	return false;
 }
 
-MES::InputEventProcessor& MES::InputEventProcessor::GetSingleton()
+MES::EventProcessor& MES::EventProcessor::GetSingleton()
 {
-	static MES::InputEventProcessor singleton;
+	static MES::EventProcessor singleton;
 
 	return singleton;
 }

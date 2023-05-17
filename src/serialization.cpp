@@ -10,7 +10,9 @@ void Serialization::LoadCallback(SKSE::SerializationInterface* intfc)
 	// Length in bits of serialized data
 	uint32_t length;
 	MES::Scene* scene = MES::Scene::GetSingleton();
-	// bool loaded = false;
+
+	// Clears previous scene data
+	scene->GetObjs().clear();
 
 	while (intfc->GetNextRecordInfo(type, version, length))
 	{
@@ -28,9 +30,11 @@ void Serialization::LoadCallback(SKSE::SerializationInterface* intfc)
 
 			// Gets amount of objects
 			intfc->ReadRecordData(objCount);
+			
 			logger::info("Amount of serialized objects: {}", objCount);
 
-			scene->GetSceneData(intfc, objCount);
+
+			scene->SerializeScene(intfc, objCount);
 			break;
 		}
 		else
@@ -46,4 +50,13 @@ void Serialization::SaveCallback(SKSE::SerializationInterface* intfc)
 	logger::trace("Serialization::SaveCallback");
 	MES::Scene* scene = MES::Scene::GetSingleton();
 	scene->SaveSceneData(intfc);
+}
+
+void Serialization::RevertCallback(SKSE::SerializationInterface*)
+{
+	logger::trace("Serialization::RevertCallback");
+	// MES::Scene::GetSingleton()->PrintAllObj();
+	MES::Scene* scene = MES::Scene::GetSingleton();
+	scene->GetObjs().clear();
+
 }

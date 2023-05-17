@@ -23,58 +23,40 @@ namespace MES
 		void SaveSceneData(SKSE::SerializationInterface* intfc) const;
 
 		// Unserializes Scene Data from file
-		void GetSceneData(SKSE::SerializationInterface* intfc, uint8_t objCount);
+		void SerializeScene(SKSE::SerializationInterface* intfc, uint8_t objCount);
 
 		// Clears the scene's data
-		void ClearSceneData();
+		void ClearScene();
 
-		// Creates an object and returns the reference to the object
+		RE::TESObjectREFR* CreateObj(RE::TESBoundObject* baseObj);
+
+		// Creates an object based on id and returns the reference to the object
 		template <typename T>
 		RE::TESObjectREFR* CreateObj(uint32_t baseId)
 		{
 			T* obj = RE::TESForm::LookupByID(baseId)->As<T>();
-			RE::TESObjectREFR* playerRef = RE::PlayerCharacter::GetSingleton()->AsReference();
-			RE::NiPoint3 playerPos = RE::PlayerCharacter::GetSingleton()->GetPosition();
 
 			if (!obj)
 			{
-				logger::error("Object formid doesn't fucking exist");
+				logger::error("Object doesn't fucking exist!");
 				return nullptr;
 			}
 
-			int8_t type = obj->formType.underlying();
-
-			if (!(obj->IsInitialized()))
-				obj->InitItem();
-
-			logger::info("Object Type: {}", type);
-			logger::info("Object Name: {}", obj->GetFormEditorID());
-			logger::info("Object Ref Count: {}", obj->GetRefCount());
-
-
-			if (!(playerRef))
+			if (!(obj->IsBoundObject()))
 			{
-				logger::error("Player reference not found");
+				logger::error("Object with id {} is not a base object!", baseId);
 				return nullptr;
-			}
-
-			// Creates new object reference
-			RE::TESObjectREFR* newObjRef = playerRef->PlaceObjectAtMe(obj, true).get();
-
-			// TODO put this in PlaceObj()			
-			if (objs.size() >= maxObj)
-				objs.pop_front();
-				
-			objs.push_back(std::make_unique<SceneObj>(SceneObj(newObjRef)));
-
-			RE::PlaySound("VOCShoutDragon01AFus");
-
-			return newObjRef;
+			};
+			
+			return CreateObj(obj->As<RE::TESBoundObject>());
 		};
 		
 		void PlaceObj();
 
 		static MES::Scene* GetSingleton();
+
+		std::list<std::unique_ptr<SceneObj>>& GetObjs();
+
 
 	// Debug
 	public:

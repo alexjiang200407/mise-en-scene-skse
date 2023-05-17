@@ -12,8 +12,9 @@ namespace MES
 
 	public:
 		RE::TESObjectREFR* GetRef() const;
-		void SetRef(RE::TESObjectREFR* ref);
+		void SetRef(RE::TESObjectREFR* rhs);
 
+		bool DeleteRef();
 
 		virtual bool Serialize(SKSE::SerializationInterface* intfc) const;
 

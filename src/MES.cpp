@@ -9,22 +9,30 @@ void MES::Init()
 
     logger::info("MES has initiated!!");
     logger::trace("MES::Init");
+    auto* serialisation = SKSE::GetSerializationInterface();
+
+    // Register serialisation
+    serialisation->SetUniqueID(Serialization::kMESID);
+    serialisation->SetSaveCallback(Serialization::SaveCallback);
+    serialisation->SetLoadCallback(Serialization::LoadCallback);
+    serialisation->SetRevertCallback(Serialization::RevertCallback);
 }
 
 void MES::RegisterEventHandler()
 {
-    auto& InputEventProcessor = MES::InputEventProcessor::GetSingleton();
+    auto& EventProcessor = MES::EventProcessor::GetSingleton();
 
-    RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESActivateEvent>(&InputEventProcessor);
-    RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(&InputEventProcessor);
+    RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESActivateEvent>(&EventProcessor);
+    RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(&EventProcessor);
 }
 
 void MES::UnregisterEventHandler()
 {
-    auto& InputEventProcessor = MES::InputEventProcessor::GetSingleton();
+    auto& EventProcessor = MES::EventProcessor::GetSingleton();
 
-    RE::ScriptEventSourceHolder::GetSingleton()->RemoveEventSink<RE::TESActivateEvent>(&InputEventProcessor);
-    RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(&InputEventProcessor);
+    RE::ScriptEventSourceHolder::GetSingleton()->RemoveEventSink<RE::TESActivateEvent>(&EventProcessor);
+    RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(&EventProcessor);
+
 }
 
 void MES::ProcessSysMessages(SKSE::MessagingInterface::Message* msg)
@@ -36,38 +44,29 @@ void MES::ProcessSysMessages(SKSE::MessagingInterface::Message* msg)
     {
     case SKSE::MessagingInterface::kPreLoadGame:
     {
-        // Clears previous scene data
-        // MES::Scene::GetSingleton()->ClearSceneData();
-        // MES::Scene::GetSingleton()->GetSceneData();
-
-        logger::info("About to blow a load.");
+         logger::info("About to blow a load.");
     }
     break;
     case SKSE::MessagingInterface::kPostLoadGame:
     {
         logger::info("AHHHHH!!! Just blew a load. Load OK?!! {}", static_cast<bool>(msg->data));
-        
-        MES::RegisterEventHandler();
     }
     break;
     case SKSE::MessagingInterface::kNewGame:
     {
-        // MES::Scene::GetSingleton()->ClearSceneData();
+        // Clears previous scene data
+        MES::Scene::GetSingleton()->GetObjs().clear();
 
         logger::info("Started a new game!!");
-
-        MES::RegisterEventHandler();
     }
     break;
     case SKSE::MessagingInterface::kDataLoaded:
     {
         logger::info("The game has loaded all the forms.");
-        auto* serialisation = SKSE::GetSerializationInterface();
 
-        // Register serialisation
-        serialisation->SetUniqueID(Serialization::kMESID);
-        serialisation->SetSaveCallback(Serialization::SaveCallback);
-        serialisation->SetLoadCallback(Serialization::LoadCallback);
+        // TODO Make sure the event handlers only fire when ingame not when the opening menu is open
+        MES::RegisterEventHandler();
+
     }
     break;
     case SKSE::MessagingInterface::kSaveGame:

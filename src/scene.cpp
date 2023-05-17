@@ -8,6 +8,11 @@ MES::Scene* MES::Scene::GetSingleton()
     return &scene;
 }
 
+std::list<std::unique_ptr<MES::SceneObj>>& MES::Scene::GetObjs()
+{
+    return objs;
+}
+
 void MES::Scene::PrintAllObj()
 {
     logger::info("Printing All Objects");
@@ -18,9 +23,15 @@ void MES::Scene::PrintAllObj()
         return;
     }
 
+    // Prints relevant debug information
     for (uint8_t i = 0; auto& obj : objs)
     {
-        logger::info("Object {}: Address: {}", i, fmt::ptr(obj));
+        logger::info(
+            "Object: {}, Address: {}, ID: {:x}, Ref Count: {}", 
+            i, fmt::ptr(obj), obj->GetRef()->GetFormID(),
+            obj->GetRef()->QRefCount()
+        );
+
         i++;
     }
 }
@@ -56,10 +67,17 @@ void MES::Scene::StartPositioning()
     }
 
     // Creates object next to player
-    RE::TESObjectREFR* ref = CreateObj<RE::TESObjectLIGH>(0x0001d4ec);
+    // dynamic light flicker 0x18fed
+    // torch 0x36343
+
+
+    RE::TESObjectREFR* ref = CreateObj<RE::TESObjectLIGH>(0x36343);
     
     if (!ref)
         return;
+
+
+    // SKSE::GetCrosshairRefEventSource()->AddEventSink();
 
     MES::Scene::GetSingleton()->isOpen = true;
 }
@@ -83,10 +101,18 @@ void MES::Scene::SaveSceneData(SKSE::SerializationInterface* intfc) const
         return;
     }
 
-    uint8_t size = objs.size();
+    uint8_t size = static_cast<uint8_t>(objs.size());
+
+    logger::info("Saving size: {} to file.", size);
 
     // First byte always holds amount of objs
     intfc->WriteRecordData(size);
+
+    if (size == 0)
+    {
+        logger::info("No objects to save!");
+        return;
+    }
 
     for (auto& obj : objs)
     {
@@ -97,7 +123,7 @@ void MES::Scene::SaveSceneData(SKSE::SerializationInterface* intfc) const
     }
 }
 
-void MES::Scene::GetSceneData(SKSE::SerializationInterface* intfc, uint8_t objCount)
+void MES::Scene::SerializeScene(SKSE::SerializationInterface* intfc, uint8_t objCount)
 {
     logger::info("Getting saved scene data!");
     
@@ -132,14 +158,59 @@ void MES::Scene::GetSceneData(SKSE::SerializationInterface* intfc, uint8_t objCo
     PrintAllObj();
 }
 
-void MES::Scene::ClearSceneData()
+void MES::Scene::ClearScene()
 {
-    logger::trace("MES::Scene::ClearSceneData");
+    logger::trace("MES::Scene::ClearScene");
     logger::info("Clearing scene data!!");
 
-    PrintAllObj();
+    // Remove all in game references
+    for (auto& obj : objs)
+    {
+        // Deletes the reference to the object
+        obj->DeleteRef();
+    }
 
     objs.clear();
+}
+
+RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
+{
+    RE::TESObjectREFR* playerRef = RE::PlayerCharacter::GetSingleton()->AsReference();
+
+    if (!baseObj)
+    {
+        logger::warn("base object is null!");
+        return nullptr;
+    }
+
+    if (!(baseObj->IsInitialized()))
+        baseObj->InitItem();
+
+    if (!(playerRef))
+    {
+        logger::error("Player reference not found");
+        return nullptr;
+    }
+
+    // Creates new object reference
+    RE::TESObjectREFR* newObjRef = playerRef->PlaceObjectAtMe(baseObj, true).get();
+
+    // TODO put this in PlaceObj()	
+    // TODO check if this shit memory leaks or not
+    if (objs.size() >= maxObj)
+        objs.pop_front();
+
+    objs.push_back(std::make_unique<SceneObj>(newObjRef));
+
+    logger::info(
+        "Object Type: {} Base ID: {:x} Ref ID: {:x}",
+        RE::FormTypeToString(baseObj->GetFormType()), baseObj->GetFormID(),
+        newObjRef->GetFormID()
+    );
+
+    RE::PlaySound("VOCShoutDragon01AFus");
+
+    return newObjRef;
 }
 
 void MES::Scene::PlaceObj()

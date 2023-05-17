@@ -3,18 +3,18 @@
 
 namespace MES
 {
-	class InputEventProcessor
+	class EventProcessor
 		: 
 		public RE::BSTEventSink<RE::TESActivateEvent>,
 		public RE::BSTEventSink<RE::InputEvent*>
 	{
 	public:
-		InputEventProcessor() = default;
-		~InputEventProcessor() = default;
-		InputEventProcessor(const InputEventProcessor&) = delete;
-		InputEventProcessor(InputEventProcessor&&) = delete;
-		InputEventProcessor& operator=(const InputEventProcessor&) = delete;
-		InputEventProcessor& operator=(InputEventProcessor&&) = delete;
+		EventProcessor() = default;
+		~EventProcessor() = default;
+		EventProcessor(const EventProcessor&) = delete;
+		EventProcessor(EventProcessor&&) = delete;
+		EventProcessor& operator=(const EventProcessor&) = delete;
+		EventProcessor& operator=(EventProcessor&&) = delete;
 
 	public:
 		// Processes the activate event
@@ -29,11 +29,12 @@ namespace MES
 			RE::BSTEventSource<RE::InputEvent*>*
 		) override;
 
+
 		// Prevents a UI message from firing
 		bool PreventUIMsg(const std::string_view menu, const RE::UI_MESSAGE_TYPE type);
 
 		// Returns singleton class
-		static InputEventProcessor& GetSingleton();
+		static EventProcessor& GetSingleton();
 	};
 
 }
