@@ -2,6 +2,7 @@
 #include "logger.h"
 #include "event.h"
 #include "serialization.h"
+#include "UIManager.h"
 
 namespace MES 
 {

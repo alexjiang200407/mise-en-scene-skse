@@ -1,6 +1,7 @@
 #include "scene.h"
 #include "utility.h"
 #include "serialization.h"
+#include "UIManager.h"
 
 MES::Scene* MES::Scene::GetSingleton()
 {
@@ -50,44 +51,31 @@ void MES::Scene::StartPositioning()
 {
     logger::trace("MES::Scene::StartPositioning");
 
-    RE::UI* ui = RE::UI::GetSingleton();
+    if (!UIManager::GetSingleton()->OpenMenu())
+        return;
 
-    // Checks if another menu is open
-    for (auto& menu : ui->menuStack)
-    {
-        if (
-            !menu->AlwaysOpen() ||
-            menu->Modal() ||
-            menu->FreezeFramePause()
-        )
-        {
-            logger::warn("Another menu is open, cannot open MES menu!!!");
-            return;
-        }
-    }
+    // TODO make it so actors will have AI toggled off
 
     // Creates object next to player
     // dynamic light flicker 0x18fed
     // torch 0x36343
+    // Actor Vex 1cd90
 
+     RE::TESObjectREFR* ref = CreateObj(0x1cd90);
 
-    RE::TESObjectREFR* ref = CreateObj<RE::TESObjectLIGH>(0x36343);
-    
     if (!ref)
         return;
 
-
     // SKSE::GetCrosshairRefEventSource()->AddEventSink();
 
-    MES::Scene::GetSingleton()->isOpen = true;
+    MES::UIManager::GetSingleton()->isOpen = true;
 }
 
 void MES::Scene::StopPositioning()
 {
     logger::trace("MES::Scene::StopPositioning");
 
-    RE::PlaySound("VOCShoutDragon01AFus");
-    MES::Scene::GetSingleton()->isOpen = false;
+    UIManager::GetSingleton()->CloseMenu();
 }
 
 void MES::Scene::SaveSceneData(SKSE::SerializationInterface* intfc) const
@@ -154,8 +142,6 @@ void MES::Scene::SerializeScene(SKSE::SerializationInterface* intfc, uint8_t obj
 
         objs.push_back(std::make_unique<SceneObj>(obj));
     }
-
-    PrintAllObj();
 }
 
 void MES::Scene::ClearScene()
@@ -179,12 +165,12 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
 
     if (!baseObj)
     {
-        logger::warn("base object is null!");
+        logger::warn("base object was not found!");
         return nullptr;
     }
 
-    if (!(baseObj->IsInitialized()))
-        baseObj->InitItem();
+    //if (!(baseObj->IsInitialized()))
+    //    baseObj->InitItem();
 
     if (!(playerRef))
     {
@@ -192,7 +178,7 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
         return nullptr;
     }
 
-    // Creates new object reference
+    // Creates new object reference and places it at player
     RE::TESObjectREFR* newObjRef = playerRef->PlaceObjectAtMe(baseObj, true).get();
 
     // TODO put this in PlaceObj()	
@@ -202,8 +188,19 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
 
     objs.push_back(std::make_unique<SceneObj>(newObjRef));
 
+    // Handles based on the baseObj form type
+    switch (baseObj->GetFormType())
+    {
+    // If NPC toggles its AI
+    case RE::FormType::NPC:
+    {
+        newObjRef->As<RE::Actor>()->EnableAI(false);
+    }
+    break;
+    }
+
     logger::info(
-        "Object Type: {} Base ID: {:x} Ref ID: {:x}",
+        "Created Object! Type: {}, Base ID: {:x}, Ref ID: {:x},",
         RE::FormTypeToString(baseObj->GetFormType()), baseObj->GetFormID(),
         newObjRef->GetFormID()
     );
@@ -211,6 +208,19 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
     RE::PlaySound("VOCShoutDragon01AFus");
 
     return newObjRef;
+}
+
+RE::TESObjectREFR* MES::Scene::CreateObj(RE::FormID baseId)
+{
+    RE::TESForm* obj = RE::TESForm::LookupByID(baseId);
+
+    if (!obj)
+    {
+        logger::warn("baseID: {:x} doesn't exist!", baseId);
+        return nullptr;
+    }
+
+    return CreateObj(obj->As<RE::TESBoundObject>());
 }
 
 void MES::Scene::PlaceObj()

@@ -30,9 +30,6 @@ namespace MES
 		) override;
 
 
-		// Prevents a UI message from firing
-		bool PreventUIMsg(const std::string_view menu, const RE::UI_MESSAGE_TYPE type);
-
 		// Returns singleton class
 		static EventProcessor& GetSingleton();
 	};

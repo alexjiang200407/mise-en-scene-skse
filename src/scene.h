@@ -2,6 +2,7 @@
 #include "logger.h"
 #include <list>
 #include "obj.h"
+#include "UI.h"
 
 namespace MES
 {
@@ -9,6 +10,7 @@ namespace MES
 	{
 	public:
 		Scene();
+
 		~Scene();
 		Scene(const Scene&) = delete;
 		Scene(Scene&&) = delete;
@@ -31,25 +33,7 @@ namespace MES
 		RE::TESObjectREFR* CreateObj(RE::TESBoundObject* baseObj);
 
 		// Creates an object based on id and returns the reference to the object
-		template <typename T>
-		RE::TESObjectREFR* CreateObj(uint32_t baseId)
-		{
-			T* obj = RE::TESForm::LookupByID(baseId)->As<T>();
-
-			if (!obj)
-			{
-				logger::error("Object doesn't fucking exist!");
-				return nullptr;
-			}
-
-			if (!(obj->IsBoundObject()))
-			{
-				logger::error("Object with id {} is not a base object!", baseId);
-				return nullptr;
-			};
-			
-			return CreateObj(obj->As<RE::TESBoundObject>());
-		};
+		RE::TESObjectREFR* CreateObj(RE::FormID baseId);
 		
 		void PlaceObj();
 
@@ -66,9 +50,5 @@ namespace MES
 		static constexpr uint8_t maxObj = 255;
 		static constexpr uint8_t maxLights = 5;
 		std::list<std::unique_ptr<SceneObj>> objs;
-
-	public:
-		// If the user is currently positioning
-		bool isOpen = false;
 	};
 }

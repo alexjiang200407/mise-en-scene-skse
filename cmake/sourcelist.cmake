@@ -14,4 +14,8 @@ set(sources ${sources}
 	src/obj.h
 	src/serialization.h
 	src/serialization.cpp
+	src/UI.cpp
+	src/UI.h
+	src/UIManager.cpp
+	src/UIManager.h
 )

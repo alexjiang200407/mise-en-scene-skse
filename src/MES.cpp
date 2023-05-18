@@ -4,11 +4,8 @@
 void MES::Init() 
 {
     MES::SetupLog();
-    
-    // spdlog::set_level(spdlog::level::err);
-
-    logger::info("MES has initiated!!");
     logger::trace("MES::Init");
+
     auto* serialisation = SKSE::GetSerializationInterface();
 
     // Register serialisation
@@ -16,6 +13,12 @@ void MES::Init()
     serialisation->SetSaveCallback(Serialization::SaveCallback);
     serialisation->SetLoadCallback(Serialization::LoadCallback);
     serialisation->SetRevertCallback(Serialization::RevertCallback);
+
+
+    // Registers MES's system event listeners
+    SKSE::GetMessagingInterface()->RegisterListener(MES::ProcessSysMessages);
+
+    logger::info("MES has initiated!!");
 }
 
 void MES::RegisterEventHandler()
@@ -24,6 +27,7 @@ void MES::RegisterEventHandler()
 
     RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESActivateEvent>(&EventProcessor);
     RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(&EventProcessor);
+    UIManager::GetSingleton()->Register();
 }
 
 void MES::UnregisterEventHandler()
@@ -38,7 +42,6 @@ void MES::UnregisterEventHandler()
 void MES::ProcessSysMessages(SKSE::MessagingInterface::Message* msg)
 {
     logger::trace("MES::ProcessSysMessages");
-    logger::info("Message Type: {}", msg->type);
 
     switch (msg->type)
     {
@@ -71,9 +74,6 @@ void MES::ProcessSysMessages(SKSE::MessagingInterface::Message* msg)
     break;
     case SKSE::MessagingInterface::kSaveGame:
     {
-        // Saves scene data to disk
-        // MES::Scene::GetSingleton()->SaveSceneData();
-
         logger::info("The game has been saved to {}!", static_cast<const char*>(msg->data));
     }
     break;
@@ -87,9 +87,6 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
 
     // Initialise MES
     MES::Init();
-
-    // Registers MES's system event listeners
-    SKSE::GetMessagingInterface()->RegisterListener(MES::ProcessSysMessages);
 
     return true;
 }
