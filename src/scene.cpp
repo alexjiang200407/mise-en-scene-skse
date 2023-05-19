@@ -9,7 +9,7 @@ MES::Scene* MES::Scene::GetSingleton()
     return &scene;
 }
 
-std::list<std::unique_ptr<MES::SceneObj>>& MES::Scene::GetObjs()
+std::vector<std::unique_ptr<MES::SceneObj>>& MES::Scene::GetObjs()
 {
     return objs;
 }
@@ -39,7 +39,7 @@ void MES::Scene::PrintAllObj()
 
 MES::Scene::Scene()
 {
-    PrintAllObj();
+    objs.reserve(static_cast<uint16_t>(maxObj));
 }
 
 MES::Scene::~Scene()
@@ -169,22 +169,26 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
         return nullptr;
     }
 
-    //if (!(baseObj->IsInitialized()))
-    //    baseObj->InitItem();
-
     if (!(playerRef))
     {
         logger::error("Player reference not found");
         return nullptr;
     }
 
+    // If the obj count surpasses maximum size
+    if (objs.size() >= maxObj)
+    {
+        char buffer[256];
+        snprintf(
+            buffer, 256, "Cannot have more than %d scene objects!", maxObj
+        );
+
+        RE::DebugNotification(buffer, "UIMenuOKSD");
+        return nullptr;
+    }
+
     // Creates new object reference and places it at player
     RE::TESObjectREFR* newObjRef = playerRef->PlaceObjectAtMe(baseObj, true).get();
-
-    // TODO put this in PlaceObj()	
-    // TODO check if this shit memory leaks or not
-    if (objs.size() >= maxObj)
-        objs.pop_front();
 
     objs.push_back(std::make_unique<SceneObj>(newObjRef));
 
@@ -204,8 +208,6 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
         RE::FormTypeToString(baseObj->GetFormType()), baseObj->GetFormID(),
         newObjRef->GetFormID()
     );
-
-    RE::PlaySound("VOCShoutDragon01AFus");
 
     return newObjRef;
 }

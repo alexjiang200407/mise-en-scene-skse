@@ -18,7 +18,9 @@ namespace MES
 
 	public:
 		void Register() const;
-		bool PreventUIMsg(const std::string_view menu, const RE::UI_MESSAGE_TYPE type);
+		bool PreventUIMsg(
+			const std::string_view menu, const RE::UI_MESSAGE_TYPE type
+		);
 
 		RE::GPtr<MES::MESUI> GetMESMenu();
 

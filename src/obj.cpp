@@ -18,9 +18,8 @@ void MES::SceneObj::SetRef(RE::TESObjectREFR* rhs)
 
 bool MES::SceneObj::DeleteRef()
 {
-    logger::info("Deleting reference");
-
-    // Marks reference for deletion so it is cleared next time a save is loaded
+    // Marks reference for deletion 
+    // so it is cleared next time a save is loaded
     pRef->Disable();
     pRef->SetDelete(true);
 

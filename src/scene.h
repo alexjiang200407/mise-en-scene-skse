@@ -39,7 +39,7 @@ namespace MES
 
 		static MES::Scene* GetSingleton();
 
-		std::list<std::unique_ptr<SceneObj>>& GetObjs();
+		std::vector<std::unique_ptr<SceneObj>>& GetObjs();
 
 
 	// Debug
@@ -48,7 +48,6 @@ namespace MES
 
 	private:
 		static constexpr uint8_t maxObj = 255;
-		static constexpr uint8_t maxLights = 5;
-		std::list<std::unique_ptr<SceneObj>> objs;
+		std::vector<std::unique_ptr<SceneObj>> objs;
 	};
 }

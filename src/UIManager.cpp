@@ -68,16 +68,19 @@ bool MES::UIManager::OpenMenu()
 		}
 	}
 
-	auto* msgQueue = RE::UIMessageQueue::GetSingleton();
+	//auto* msgQueue = RE::UIMessageQueue::GetSingleton();
 
-	if (!msgQueue)
-		return false;
+	//if (!msgQueue)
+	//	return false;
 
-	// Adds show event to message queue
-	msgQueue->AddMessage(
-		MESUI::MENU_NAME, 
-		RE::UI_MESSAGE_TYPE::kShow, nullptr
-	);
+	//// Adds show event to message queue
+	//msgQueue->AddMessage(
+	//	MESUI::MENU_NAME, 
+	//	RE::UI_MESSAGE_TYPE::kShow, nullptr
+	//);
+
+
+	MES::MESUI::OpenMenu();
 
 	isOpen = true;
 	return true;
@@ -85,15 +88,15 @@ bool MES::UIManager::OpenMenu()
 
 bool MES::UIManager::CloseMenu()
 {
-	RE::PlaySound("VOCShoutDragon01AFus");
+	//auto msgQueue = RE::UIMessageQueue::GetSingleton();
 
-	auto msgQueue = RE::UIMessageQueue::GetSingleton();
+	//// Adds show event to message queue
+	//msgQueue->AddMessage(
+	//	MESUI::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr
+	//);
 
-	// Adds show event to message queue
-	msgQueue->AddMessage(
-		MESUI::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr
-	);
-
+	MES::MESUI::CloseMenu();
+	
 	isOpen = false;
 
 	return true;
@@ -101,26 +104,16 @@ bool MES::UIManager::CloseMenu()
 	
 RE::BSEventNotifyControl MES::UIManager::ProcessEvent(
 	const RE::MenuOpenCloseEvent* event, 
-	RE::BSTEventSource<RE::MenuOpenCloseEvent>* src
+	RE::BSTEventSource<RE::MenuOpenCloseEvent>*
 )
 {
 	if (!event)
 		return RE::BSEventNotifyControl::kContinue;
 
-	if (event->menuName == MESUI::MENU_NAME)
+	if (event->menuName == MESUI::MENU_NAME && event->opening != isOpen)
 	{
-		if (event->opening == isOpen)
-		{
-			logger::info("Process Event is right!");
-		}
-		else
-		{
-			logger::info("Process event is wrong!");
-		}
-	}
-	else
-	{
-		logger::info("Not my menu!");
+		isOpen = false;
+		logger::info("Closing MES menu!");
 	}
 
 	return RE::BSEventNotifyControl::kContinue;
