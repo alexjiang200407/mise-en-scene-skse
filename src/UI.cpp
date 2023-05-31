@@ -11,7 +11,8 @@ MES::MESUI::MESUI()
 	// Registers user interface
 	const bool success =
 		scaleformManager->LoadMovieEx(
-			menu, FILE_NAME, [&](RE::GFxMovieDef* a_def) -> void {			
+			menu, FILE_NAME, [&](RE::GFxMovieDef* a_def) -> void {	
+		
 				// From Skyrim Character Sheet
 				fxDelegate.reset(new RE::FxDelegate);
 				fxDelegate->RegisterHandler(this);
@@ -33,48 +34,21 @@ MES::MESUI::MESUI()
 		return;
 	}
 	else
-		logger::error("Loaded MES menu!");
+		logger::info("Loaded MES menu!");
 
 	assert(success);
 	
 	menuFlags.set(
-		FLAGS::kAllowSaving,
-		FLAGS::kRequiresUpdate,
-		FLAGS::kTopmostRenderedMenu,
-		FLAGS::kUsesCursor,
-		FLAGS::kPausesGame
+		FLAGS::kDisablePauseMenu,
+		FLAGS::kModal
 	);
 
 	menu->inputContext = Context::kNone;
 
 	view = menu->uiMovie;
 
-	//view->SetVariable("FavoritesMenu.iListItemsShown", 3);
-	//view->SetVariable("FavoritesMenu.iMaxItemsShown.", 3);
+	SetSelected(0);
 
-	RE::FxResponseArgsEx<2> args;
-	RE::FxResponseArgsEx<1> args2;
-
-	// Creates array of current objects
-	view->CreateArray(&args[0]);
-
-	if (
-		!args[0].PushBack("Lighting") ||
-		!args[0].PushBack("Props") ||
-		!args[0].PushBack("Furniture") ||
-		!args[0].PushBack("Environment")
-	)
-	{
-		logger::error("Unable to intialise arguments!");
-		return;
-	}
-
-	args[1].SetNumber(4.0f);
-
-	args2[0].SetNumber(1);
-
-	fxDelegate->Invoke(view.get(), "PopulateItems", args);
-	fxDelegate->Invoke(view.get(), "SetSelectedItem", args2);
 }
 
 void MES::MESUI::Register()
@@ -86,7 +60,6 @@ void MES::MESUI::Register()
 		logger::info("Registered menu: {}", MENU_NAME);
 	}
 }
-
 
 RE::UI_MESSAGE_RESULTS MES::MESUI::ProcessMessage(RE::UIMessage& msg)
 {
@@ -118,9 +91,6 @@ void MES::MESUI::AdvanceMovie(float interval, std::uint32_t currentTime)
 
 void MES::MESUI::Accept(CallbackProcessor* processor)
 {
-	//processor->Process("SetButtonMapping", SetButtonMapping);
-	//processor->Process("Cancel", SetButtonMapping);
-
 	processor->Process("PlaySound", [](const RE::FxDelegateArgs& args)
 	{
 		assert(args[0].IsString());
@@ -130,8 +100,19 @@ void MES::MESUI::Accept(CallbackProcessor* processor)
 
 	processor->Process("CloseMenu", [](const RE::FxDelegateArgs& args)
 	{
-		// assert(args.GetArgCount() == 1);
+		assert(args.GetArgCount() == 1);
 		CloseMenu();
+	});
+
+	processor->Process("ItemSelect", [](const RE::FxDelegateArgs& args)
+	{
+		assert(args.GetArgCount() == 1);
+		assert(args[0].IsNumber());
+
+		logger::info("Index {} selected!", static_cast<int8_t>(args[0].GetNumber()));
+		RE::TESObjectREFR* ref = Scene::GetSingleton()->GetObjs()[args[0].GetNumber()]->GetRef();
+
+		MES::Scene::GetSingleton()->StartPositioning(static_cast<int8_t>(args[0].GetNumber()));
 	});
 }
 
@@ -145,10 +126,13 @@ void MES::MESUI::OpenMenu()
 		return;
 	}
 
+
 	// Adds show event to message queue
 	msgQueue->AddMessage(
 		MESUI::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow, nullptr
 	);
+
+	
 }
 
 void MES::MESUI::CloseMenu()
@@ -161,10 +145,47 @@ void MES::MESUI::CloseMenu()
 		return;
 	}
 
+	// Stops positioning
+	MES::Scene::GetSingleton()->StopPositioning();
+
 	// Adds show event to message queue
 	msgQueue->AddMessage(
 		MESUI::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr
 	);
+}
+
+void MES::MESUI::SetSelected(uint8_t index) const
+{
+	RE::FxResponseArgsEx<1> args;
+
+	args[0].SetNumber(index);
+	fxDelegate->Invoke(view.get(), "SetSelected", args);
+}
+
+void MES::MESUI::PopulateList(std::vector<const char*>& list) const
+{
+	std::vector<const char*> strings;
+
+	RE::FxResponseArgsEx<2> args;
+	view->CreateArray(&args[0]);
+
+	for (auto& str : list)
+	{
+		args[0].PushBack(str);
+	}
+
+	args[1].SetNumber(static_cast<double>(list.size()));
+
+	fxDelegate->Invoke(view.get(), "PopulateItems", args);
+}
+
+void MES::MESUI::PushItem(const char* item) const
+{
+	RE::FxResponseArgsEx<1> args;
+
+	args[0].SetString(item);
+
+	fxDelegate->Invoke(view.get(), "PushToList", args);
 }
 
 void MES::MESUI::Logger::LogMessageVarg(

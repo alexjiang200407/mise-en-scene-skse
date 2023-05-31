@@ -7,43 +7,7 @@ void MES::UIManager::Register() const
 	RE::UI::GetSingleton()->AddEventSink<RE::MenuOpenCloseEvent>(UIManager::GetSingleton());
 }
 
-bool MES::UIManager::PreventUIMsg(const std::string_view menu, const RE::UI_MESSAGE_TYPE type)
-{
-	logger::trace("MES::EventProcessor::PreventUIMsg");
-
-	RE::UIMessageQueue* uiMsgQueue = RE::UIMessageQueue::GetSingleton();
-	int32_t				typeInt = MES::EnumToInt32(type);
-
-	for (auto& msg : uiMsgQueue->messagePool)
-	{
-		if (
-			msg.menu == menu &&
-			msg.type == type
-			)
-		{
-			logger::info("Found {} message with type: {}!!", menu, typeInt);
-
-			RE::UIMessage* pMsg = &msg;
-
-			if (uiMsgQueue->messages.Pop(&pMsg))
-			{
-				logger::info("Successfully removed {} with event type: {}!!! YAY", menu, typeInt);
-				return true;
-			}
-			else
-			{
-				logger::error("Epic fail, couldn't remove {} with event type: {}.", menu, typeInt);
-				return false;
-
-			}
-		}
-	}
-
-	logger::warn("Did not remove any {} event!!!", menu);
-	return false;
-}
-
-RE::GPtr<MES::MESUI> MES::UIManager::GetMESMenu()
+RE::GPtr<MES::MESUI> MES::UIManager::GetMenu()
 {
 	auto* ui = RE::UI::GetSingleton();
 	
@@ -68,18 +32,6 @@ bool MES::UIManager::OpenMenu()
 		}
 	}
 
-	//auto* msgQueue = RE::UIMessageQueue::GetSingleton();
-
-	//if (!msgQueue)
-	//	return false;
-
-	//// Adds show event to message queue
-	//msgQueue->AddMessage(
-	//	MESUI::MENU_NAME, 
-	//	RE::UI_MESSAGE_TYPE::kShow, nullptr
-	//);
-
-
 	MES::MESUI::OpenMenu();
 
 	isOpen = true;
@@ -88,13 +40,6 @@ bool MES::UIManager::OpenMenu()
 
 bool MES::UIManager::CloseMenu()
 {
-	//auto msgQueue = RE::UIMessageQueue::GetSingleton();
-
-	//// Adds show event to message queue
-	//msgQueue->AddMessage(
-	//	MESUI::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr
-	//);
-
 	MES::MESUI::CloseMenu();
 	
 	isOpen = false;
@@ -107,14 +52,36 @@ RE::BSEventNotifyControl MES::UIManager::ProcessEvent(
 	RE::BSTEventSource<RE::MenuOpenCloseEvent>*
 )
 {
-	if (!event)
+	if (!event || event->menuName != MESUI::MENU_NAME)
 		return RE::BSEventNotifyControl::kContinue;
 
-	if (event->menuName == MESUI::MENU_NAME && event->opening != isOpen)
+	// If the menu is going to be closed
+	if (!event->opening && isOpen)
 	{
 		isOpen = false;
 		logger::info("Closing MES menu!");
 	}
+
+	// If the menu is going to be opened
+	else if (event->opening)
+	{
+		isOpen = true;
+		logger::info("Opening MES menu!");
+		
+		MES::Scene* scene = MES::Scene::GetSingleton();
+		
+		std::vector<const char*> list;
+		list.reserve(scene->GetObjs().size());
+
+		// TODO? Name as member in the SceneObj class
+		for (auto& obj : scene->GetObjs())
+		{
+			list.push_back(obj->GetRef()->GetName());
+		}
+
+		GetMenu()->PopulateList(list);
+	}
+	
 
 	return RE::BSEventNotifyControl::kContinue;
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "logger.h"
+#include "scene.h"
 
 // Credit to TrueHud and Skyrim Character Sheet source code
 namespace MES
@@ -24,7 +25,9 @@ namespace MES
 
 		static void OpenMenu();
 		static void CloseMenu();
-
+		void SetSelected(uint8_t index) const;
+		void PopulateList(std::vector<const char*>& list) const;
+		void PushItem(const char* item) const;
 
 	// Getters and Setters
 	public:
@@ -44,7 +47,7 @@ namespace MES
 	public:
 		constexpr static std::string_view FILE_NAME{ "MESUI" };
 		constexpr static std::string_view MENU_NAME{ "MESUI" };
-		constexpr static std::int8_t SORT_PRIORITY{ 0 };
+		constexpr static std::int8_t SORT_PRIORITY{ 1 };
 
 		RE::GPtr<RE::GFxMovieView> view;
 

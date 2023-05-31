@@ -8,6 +8,7 @@ set(sources ${sources}
 	src/scene.h
 	src/scene.cpp
 	src/utility.h
+	src/utility.cpp
 	src/err.cpp
 	src/err.h
 	src/obj.cpp

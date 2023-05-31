@@ -2,6 +2,7 @@
 #include "utility.h"
 #include "serialization.h"
 #include "UIManager.h"
+#include "event.h"
 
 MES::Scene* MES::Scene::GetSingleton()
 {
@@ -9,9 +10,42 @@ MES::Scene* MES::Scene::GetSingleton()
     return &scene;
 }
 
-std::vector<std::unique_ptr<MES::SceneObj>>& MES::Scene::GetObjs()
+RE::BSEventNotifyControl MES::Scene::ProcessEvent(RE::InputEvent* const* event, RE::BSTEventSource<RE::InputEvent*>*)
 {
-    return objs;
+    if (!event)
+        return RE::BSEventNotifyControl::kContinue;
+
+
+
+    logger::info("cunt");
+    RE::NiPoint3 crosshairPos = RE::CrosshairPickData::GetSingleton()->collisionPoint;
+    RE::hkVector4 vec;
+    RE::bhkRigidBody* collider = RE::CrosshairPickData::GetSingleton()->targetCollider;
+    RE::TESObjectREFR* player = RE::PlayerCharacter::GetSingleton()->AsReference();
+    
+    if (!player)
+        return RE::BSEventNotifyControl::kContinue;
+
+    logger::info("Player position x: {}, y: {}, z: {}", player->GetPositionX(), player->GetPositionY(), player->GetPositionZ());
+    logger::info("Crosshair position x: {}, y: {}, z: {}", crosshairPos.x, crosshairPos.y, crosshairPos.z);
+    
+    if (collider)
+    {
+        collider->GetPosition(vec);
+    }
+
+    if (vec.quad.m128_f32)
+        logger::info("Crosshair position 2 x: {}, y: {}, z: {}", vec.quad.m128_f32[0], vec.quad.m128_f32[1], vec.quad.m128_f32[2]);
+
+    if (!positionedObj || !positionedObj->GetRef())
+        return RE::BSEventNotifyControl::kContinue;
+
+    // Move to crosshair
+    positionedObj->GetRef()->SetPosition(
+        crosshairPos.x, crosshairPos.y, crosshairPos.z
+    );
+
+    return RE::BSEventNotifyControl::kContinue;
 }
 
 void MES::Scene::PrintAllObj()
@@ -51,11 +85,6 @@ void MES::Scene::StartPositioning()
 {
     logger::trace("MES::Scene::StartPositioning");
 
-    if (!UIManager::GetSingleton()->OpenMenu())
-        return;
-
-    // TODO make it so actors will have AI toggled off
-
     // Creates object next to player
     // dynamic light flicker 0x18fed
     // torch 0x36343
@@ -63,19 +92,59 @@ void MES::Scene::StartPositioning()
 
      RE::TESObjectREFR* ref = CreateObj(0x1cd90);
 
-    if (!ref)
-        return;
+     if (!ref)
+         return;
 
-    // SKSE::GetCrosshairRefEventSource()->AddEventSink();
+     positionedObj = std::make_unique<SceneObj>(ref);
+     newObj = true;
+     StartPositioning(positionedObj.get());
+}
 
-    MES::UIManager::GetSingleton()->isOpen = true;
+void MES::Scene::StartPositioning(uint8_t index)
+{
+    newObj = false;
+    StartPositioning(objs[index].get());
+}
+
+void MES::Scene::StartPositioning(MES::SceneObj* sceneObj)
+{
+    sceneObj->GetRef()->MoveTo(RE::PlayerCharacter::GetSingleton()->AsReference());
+
+    RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(this);
 }
 
 void MES::Scene::StopPositioning()
 {
     logger::trace("MES::Scene::StopPositioning");
+    MES::EventProcessor::GetSingleton()->Register();
 
-    UIManager::GetSingleton()->CloseMenu();
+    if (positionedObj)
+    {
+        positionedObj->DeleteRef();
+        positionedObj.release();
+    }
+}
+
+void MES::Scene::PlaceObj()
+{
+    logger::info("Cunt");
+    // If user is adding a new scene object not modifying existing scene object
+    if (newObj)
+    {
+        // 1. Adds new object to scene array
+        objs.push_back(std::make_unique<MES::SceneObj>(*(positionedObj.get())));
+
+        // 2. Updates user interface
+        {
+            MES::UIManager* ui = MES::UIManager::GetSingleton();
+            ui->GetMenu()->PushItem(positionedObj->GetRef()->GetName());
+        }
+
+        newObj = false;
+    }
+
+    RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(this);
+    positionedObj.release();
 }
 
 void MES::Scene::SaveSceneData(SKSE::SerializationInterface* intfc) const
@@ -157,6 +226,12 @@ void MES::Scene::ClearScene()
     }
 
     objs.clear();
+
+    if (positionedObj)
+    {
+        positionedObj->DeleteRef();
+        positionedObj.release();
+    }
 }
 
 RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
@@ -190,7 +265,7 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
     // Creates new object reference and places it at player
     RE::TESObjectREFR* newObjRef = playerRef->PlaceObjectAtMe(baseObj, true).get();
 
-    objs.push_back(std::make_unique<SceneObj>(newObjRef));
+    // objs.push_back(std::make_unique<SceneObj>(newObjRef));
 
     // Handles based on the baseObj form type
     switch (baseObj->GetFormType())
@@ -198,7 +273,7 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
     // If NPC toggles its AI
     case RE::FormType::NPC:
     {
-        newObjRef->As<RE::Actor>()->EnableAI(false);
+        // newObjRef->As<RE::Actor>()->EnableAI(false);
     }
     break;
     }
@@ -225,7 +300,3 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::FormID baseId)
     return CreateObj(obj->As<RE::TESBoundObject>());
 }
 
-void MES::Scene::PlaceObj()
-{
-    logger::trace("MES::Scene::PlaceObj");
-}

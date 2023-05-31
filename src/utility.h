@@ -1,4 +1,6 @@
 #pragma once
+#include "REL/Relocation.h"
+#include "logger.h"
 
 namespace MES
 {

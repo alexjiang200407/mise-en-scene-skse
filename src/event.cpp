@@ -1,8 +1,16 @@
-#pragma once
 #include "event.h"
-#include "utility.h"
-#include "UIManager.h"
 
+void MES::EventProcessor::Register()
+{
+	RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESActivateEvent>(this);
+	RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(this);
+}
+
+void MES::EventProcessor::Unregister()
+{
+	RE::ScriptEventSourceHolder::GetSingleton()->RemoveEventSink<RE::TESActivateEvent>(this);
+	RE::BSInputDeviceManager::GetSingleton()->BSTEventSource::RemoveEventSink(this);
+}
 
 RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 	const RE::TESActivateEvent* event, 
@@ -50,23 +58,23 @@ RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 		!MES::UIManager::GetSingleton()->isOpen
 	)
 	{
-		MES::Scene::GetSingleton()->StartPositioning();
+		if (!UIManager::GetSingleton()->OpenMenu())
+			return RE::BSEventNotifyControl::kContinue;
 	}
-
-	// Exits out of positioning menu if escape (1) is pressed
-	else if (dxScancode == 1 && MES::UIManager::GetSingleton()->isOpen)
-	{
-		// Prevents the journal from opening
-		UIManager::GetSingleton()->PreventUIMsg(RE::JournalMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow);
-
-		// Stops the positioning
-		MES::Scene::GetSingleton()->StopPositioning();
-	}
-
 	// If E (18) is pressed then places down the light
-	else if (MES::UIManager::GetSingleton()->isOpen && dxScancode == 18)
+	else if (
+		MES::UIManager::GetSingleton()->isOpen && dxScancode == 18 &&
+		buttonEvt->IsUp()
+	)
 	{
-		MES::Scene::GetSingleton()->PlaceObj();
+		// If currently positioning scene object place the object down
+		if (MES::Scene::GetSingleton()->GetPositioned().get())
+			MES::Scene::GetSingleton()->PlaceObj();
+
+		// If not currently positioning then start positioning
+		else
+			MES::Scene::GetSingleton()->StartPositioning();
+
 	}
 
 	// If delete (211) is pressed, removes every object spawned
@@ -91,9 +99,9 @@ RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 	return RE::BSEventNotifyControl::kContinue;
 }
 
-MES::EventProcessor& MES::EventProcessor::GetSingleton()
+MES::EventProcessor* MES::EventProcessor::GetSingleton()
 {
 	static MES::EventProcessor singleton;
 
-	return singleton;
+	return &singleton;
 }

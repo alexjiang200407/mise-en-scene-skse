@@ -23,19 +23,18 @@ void MES::Init()
 
 void MES::RegisterEventHandler()
 {
-    auto& EventProcessor = MES::EventProcessor::GetSingleton();
+    EventProcessor::GetSingleton()->Register();
 
-    RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESActivateEvent>(&EventProcessor);
-    RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(&EventProcessor);
+    //RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESActivateEvent>(&EventProcessor);
+    //RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(&EventProcessor);
     UIManager::GetSingleton()->Register();
 }
 
 void MES::UnregisterEventHandler()
 {
-    auto& EventProcessor = MES::EventProcessor::GetSingleton();
-
-    RE::ScriptEventSourceHolder::GetSingleton()->RemoveEventSink<RE::TESActivateEvent>(&EventProcessor);
-    RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(&EventProcessor);
+    MES::EventProcessor::GetSingleton()->Unregister();
+    //RE::ScriptEventSourceHolder::GetSingleton()->RemoveEventSink<RE::TESActivateEvent>(&EventProcessor);
+    //RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(&EventProcessor);
 
 }
 

@@ -1,5 +1,8 @@
+#pragma once
 #include "logger.h"
 #include "scene.h"
+#include "utility.h"
+#include "UIManager.h"
 
 namespace MES
 {
@@ -16,6 +19,8 @@ namespace MES
 		EventProcessor& operator=(const EventProcessor&) = delete;
 		EventProcessor& operator=(EventProcessor&&) = delete;
 
+		void Register();
+		void Unregister();
 	public:
 		// Processes the activate event
 		RE::BSEventNotifyControl ProcessEvent(
@@ -31,7 +36,7 @@ namespace MES
 
 
 		// Returns singleton class
-		static EventProcessor& GetSingleton();
+		static EventProcessor* GetSingleton();
 	};
 
 }

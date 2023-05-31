@@ -3,6 +3,7 @@
 
 namespace MES
 {
+	// A physical object within a scene, e.g. a Sweetroll!
 	class SceneObj
 	{
 	public:
