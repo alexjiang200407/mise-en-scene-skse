@@ -11,8 +11,8 @@ set(sources ${sources}
 	src/utility.cpp
 	src/err.cpp
 	src/err.h
-	src/obj.cpp
-	src/obj.h
+	src/prop.cpp
+	src/prop.h
 	src/serialization.h
 	src/serialization.cpp
 	src/UI.cpp

@@ -4,12 +4,14 @@
 namespace MES
 {
 	// A physical object within a scene, e.g. a Sweetroll!
-	class SceneObj
+	class Prop
 	{
 	public:
-		SceneObj() = default;
-		SceneObj(RE::TESObjectREFR* ref);
-		~SceneObj() = default;
+		Prop() = default;
+		Prop(RE::TESObjectREFR* ref);
+		// Prop(const Prop&) = default;
+
+		~Prop() = default;
 
 	public:
 		RE::TESObjectREFR* GetRef() const;

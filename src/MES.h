@@ -18,4 +18,10 @@ namespace MES
     // Process SKSE system messages, save / load game etc.
     void ProcessSysMessages(SKSE::MessagingInterface::Message* msg);
 
+    // Get the BoundObjects / base object IDs saved in json file
+    void GetSavedBaseObjIds();
+
+    // Gets the plugin compile index.
+    // Returns 0 if not found
+    uint8_t GetPluginCompileIndex();
 }

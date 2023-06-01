@@ -16,6 +16,8 @@ RE::GPtr<MES::MESUI> MES::UIManager::GetMenu()
 
 bool MES::UIManager::OpenMenu()
 {
+	logger::trace("MES::UIManager::OpenMenu");
+
 	RE::UI* ui = RE::UI::GetSingleton();
 
 	// Checks if another menu is open
@@ -40,6 +42,7 @@ bool MES::UIManager::OpenMenu()
 
 bool MES::UIManager::CloseMenu()
 {
+	logger::trace("MES::UIManager::CloseMenu");
 	MES::MESUI::CloseMenu();
 	
 	isOpen = false;
@@ -71,10 +74,10 @@ RE::BSEventNotifyControl MES::UIManager::ProcessEvent(
 		MES::Scene* scene = MES::Scene::GetSingleton();
 		
 		std::vector<const char*> list;
-		list.reserve(scene->GetObjs().size());
+		list.reserve(scene->GetProps().size());
 
-		// TODO? Name as member in the SceneObj class
-		for (auto& obj : scene->GetObjs())
+		// TODO? Name as member in the Prop class
+		for (auto& obj : scene->GetProps())
 		{
 			list.push_back(obj->GetRef()->GetName());
 		}

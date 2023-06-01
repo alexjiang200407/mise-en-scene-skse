@@ -12,7 +12,7 @@ void Serialization::LoadCallback(SKSE::SerializationInterface* intfc)
 	MES::Scene* scene = MES::Scene::GetSingleton();
 
 	// Clears previous scene data
-	scene->GetObjs().clear();
+	scene->GetProps().clear();
 
 	while (intfc->GetNextRecordInfo(type, version, length))
 	{
@@ -26,15 +26,15 @@ void Serialization::LoadCallback(SKSE::SerializationInterface* intfc)
 		{
 			// Deserialize Load
 			logger::info("type: {}, version: {}, length: {}", type, version, length);
-			uint8_t objCount = 0;
+			uint8_t propCount = 0;
 
 			// Gets amount of objects
-			intfc->ReadRecordData(objCount);
+			intfc->ReadRecordData(propCount);
 			
-			logger::info("Amount of serialized objects: {}", objCount);
+			logger::info("Amount of serialized props: {}", propCount);
 
 
-			scene->SerializeScene(intfc, objCount);
+			scene->UnserializeScene(intfc, propCount);
 			break;
 		}
 		else
@@ -49,14 +49,14 @@ void Serialization::SaveCallback(SKSE::SerializationInterface* intfc)
 {
 	logger::trace("Serialization::SaveCallback");
 	MES::Scene* scene = MES::Scene::GetSingleton();
-	scene->SaveSceneData(intfc);
+	scene->SerializeScene(intfc);
 }
 
 void Serialization::RevertCallback(SKSE::SerializationInterface*)
 {
 	logger::trace("Serialization::RevertCallback");
-	// MES::Scene::GetSingleton()->PrintAllObj();
+	// MES::Scene::GetSingleton()->PrintAllProp();
 	MES::Scene* scene = MES::Scene::GetSingleton();
-	scene->GetObjs().clear();
+	scene->GetProps().clear();
 
 }

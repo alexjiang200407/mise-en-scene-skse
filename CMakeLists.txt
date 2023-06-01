@@ -32,12 +32,14 @@ set(OUTPUT_FOLDER "C:/Modding/MO2/mods/Mise-En-Scene")
 
 # Setup your SKSE plugin as an SKSE plugin!
 find_package(CommonLibSSE CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 include(cmake/sourcelist.cmake)
 
 add_commonlibsse_plugin(${PROJECT_NAME} SOURCES ${sources}) # <--- specifies plugin.cpp
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23) # <--- use C++23 standard
 target_precompile_headers(${PROJECT_NAME} PRIVATE PCH.h) # <--- PCH.h is required!
+target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json nlohmann_json::nlohmann_json)
 
 # When your SKSE .dll is compiled, this will automatically copy the .dll into your mods folder.
 # Only works if you configure DEPLOY_ROOT above (or set the SKYRIM_MODS_FOLDER environment variable)

@@ -23,5 +23,6 @@ namespace MES
     {
         return MES::EnumCast<int16_t>(enumeration);
     }
+
 }
 

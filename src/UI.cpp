@@ -69,11 +69,13 @@ RE::UI_MESSAGE_RESULTS MES::MESUI::ProcessMessage(RE::UIMessage& msg)
 	{
 	case Type::kShow:
 	{
+		RE::ControlMap::GetSingleton()->ignoreActivateDisabledEvents = true;
 	}
 	break;
 	case Type::kHide:
 	case Type::kForceHide:
 	{
+		RE::ControlMap::GetSingleton()->ignoreActivateDisabledEvents = false;
 	}
 	break;
 	}
@@ -110,9 +112,28 @@ void MES::MESUI::Accept(CallbackProcessor* processor)
 		assert(args[0].IsNumber());
 
 		logger::info("Index {} selected!", static_cast<int8_t>(args[0].GetNumber()));
-		RE::TESObjectREFR* ref = Scene::GetSingleton()->GetObjs()[args[0].GetNumber()]->GetRef();
-
+		// RE::TESObjectREFR* ref = Scene::GetSingleton()->GetProps()[static_cast<uint64_t>(args[0].GetNumber())]->GetRef();
 		MES::Scene::GetSingleton()->StartPositioning(static_cast<int8_t>(args[0].GetNumber()));
+	});
+
+	processor->Process("NextBaseObject", [](const RE::FxDelegateArgs& args) 
+	{
+		assert(args.GetArgCount() == 0);
+		auto* scene = MES::Scene::GetSingleton();
+		if (!scene->GetPositioned())
+		{
+			scene->NextBaseObj();
+		}
+	});
+
+	processor->Process("PrevBaseObject", [](const RE::FxDelegateArgs& args) 
+	{
+		assert(args.GetArgCount() == 0);
+		auto* scene = MES::Scene::GetSingleton();
+		if (!scene->GetPositioned())
+		{
+			scene->PrevBaseObj();
+		}
 	});
 }
 
@@ -131,8 +152,6 @@ void MES::MESUI::OpenMenu()
 	msgQueue->AddMessage(
 		MESUI::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow, nullptr
 	);
-
-	
 }
 
 void MES::MESUI::CloseMenu()

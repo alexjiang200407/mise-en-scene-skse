@@ -1,35 +1,35 @@
-#include "obj.h"
+#include "prop.h"
 
-MES::SceneObj::SceneObj(RE::TESObjectREFR* ref)
+MES::Prop::Prop(RE::TESObjectREFR* ref)
     :
     pRef(ref)
 {
 }
 
-RE::TESObjectREFR* MES::SceneObj::GetRef() const
+RE::TESObjectREFR* MES::Prop::GetRef() const
 {
 	return pRef;
 }
 
-void MES::SceneObj::SetRef(RE::TESObjectREFR* rhs)
+void MES::Prop::SetRef(RE::TESObjectREFR* rhs)
 {
     pRef = rhs;
 }
 
-bool MES::SceneObj::DeleteRef()
+bool MES::Prop::DeleteRef()
 {
     // Marks reference for deletion 
-    // so it is cleared next time a save is loaded
+    // it is cleared next time a save is loaded
     pRef->Disable();
     pRef->SetDelete(true);
 
     return true;
 }
 
-bool MES::SceneObj::Serialize(SKSE::SerializationInterface* intfc) const
+bool MES::Prop::Serialize(SKSE::SerializationInterface* intfc) const
 {
     logger::info(
-        "Saving SceneObj with formId {:x}", 
+        "Saving Prop with formId {:x}", 
         this->GetRef()->GetFormID()
     );
 

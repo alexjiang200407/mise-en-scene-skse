@@ -1,8 +1,9 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-    "name": "hello-world",
+    "name": "mise-en-scene",
     "version-string": "0.0.1",
-    "dependencies": [
-        "commonlibsse-ng"
-    ]
+  "dependencies": [
+    "commonlibsse-ng",
+    "nlohmann-json"
+  ]
 }

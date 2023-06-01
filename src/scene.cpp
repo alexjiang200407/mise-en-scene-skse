@@ -12,59 +12,88 @@ MES::Scene* MES::Scene::GetSingleton()
 
 RE::BSEventNotifyControl MES::Scene::ProcessEvent(RE::InputEvent* const* event, RE::BSTEventSource<RE::InputEvent*>*)
 {
-    if (!event)
+    if (!event || !(*event))
         return RE::BSEventNotifyControl::kContinue;
 
+    bool doubleDistance = false;
 
-
-    logger::info("cunt");
-    RE::NiPoint3 crosshairPos = RE::CrosshairPickData::GetSingleton()->collisionPoint;
-    RE::hkVector4 vec;
-    RE::bhkRigidBody* collider = RE::CrosshairPickData::GetSingleton()->targetCollider;
-    RE::TESObjectREFR* player = RE::PlayerCharacter::GetSingleton()->AsReference();
-    
-    if (!player)
-        return RE::BSEventNotifyControl::kContinue;
-
-    logger::info("Player position x: {}, y: {}, z: {}", player->GetPositionX(), player->GetPositionY(), player->GetPositionZ());
-    logger::info("Crosshair position x: {}, y: {}, z: {}", crosshairPos.x, crosshairPos.y, crosshairPos.z);
-    
-    if (collider)
+    switch ((*event)->GetEventType())
     {
-        collider->GetPosition(vec);
+    case RE::INPUT_EVENT_TYPE::kMouseMove:
+    {
+
+    }
+    break;
+    case RE::INPUT_EVENT_TYPE::kButton:
+    {
+        if ((*event)->AsButtonEvent()->idCode == 42 && (*event)->AsButtonEvent()->IsPressed())
+            doubleDistance = true;
+    }
+    break;
+    default:
+        return RE::BSEventNotifyControl::kContinue;
+    break;
     }
 
-    if (vec.quad.m128_f32)
-        logger::info("Crosshair position 2 x: {}, y: {}, z: {}", vec.quad.m128_f32[0], vec.quad.m128_f32[1], vec.quad.m128_f32[2]);
+    RE::NiPoint3 collision = RE::CrosshairPickData::GetSingleton()->collisionPoint;
+    auto* player = RE::PlayerCharacter::GetSingleton();
 
-    if (!positionedObj || !positionedObj->GetRef())
+
+    RE::NiPoint3 origin;
+    RE::NiPoint3 directionVec;
+
+    player->GetEyeVector(origin, directionVec, true);
+
+    // X metres ahead of player
+    RE::NiPoint3 lookingAt = origin + (directionVec * 100.0f * (doubleDistance + 1.0f));
+
+    // Move to the collision point
+    if (collision.GetDistance(origin) < lookingAt.GetDistance(origin))
+    {
+        positionedProp->GetRef()->SetPosition(collision);
+        positionedProp->GetRef()->SetCollision(false);
         return RE::BSEventNotifyControl::kContinue;
+    };
 
-    // Move to crosshair
-    positionedObj->GetRef()->SetPosition(
-        crosshairPos.x, crosshairPos.y, crosshairPos.z
-    );
-
-    return RE::BSEventNotifyControl::kContinue;
+    // Move to where player is looking at
+    positionedProp->GetRef()->SetPosition(lookingAt);
+    
+    
+    return RE::BSEventNotifyControl::kContinue; 
 }
 
-void MES::Scene::PrintAllObj()
+void MES::Scene::NextBaseObj()
+{
+    currentBaseObj++;
+    if (currentBaseObj >= static_cast<uint16_t>(baseObjIds.size()))
+        currentBaseObj = 0u;
+}
+
+void MES::Scene::PrevBaseObj()
+{
+    if (currentBaseObj <= 0)
+        currentBaseObj = static_cast<uint16_t>(baseObjIds.size()) - 1u;
+    else
+        currentBaseObj--;
+}
+
+void MES::Scene::PrintAllProp()
 {
     logger::info("Printing All Objects");
 
-    if (objs.size() == 0)
+    if (props.size() == 0)
     {
         logger::info("No Objects!");
         return;
     }
 
     // Prints relevant debug information
-    for (uint8_t i = 0; auto& obj : objs)
+    for (uint8_t i = 0; auto& prop : props)
     {
         logger::info(
-            "Object: {}, Address: {}, ID: {:x}, Ref Count: {}", 
-            i, fmt::ptr(obj), obj->GetRef()->GetFormID(),
-            obj->GetRef()->QRefCount()
+            "Prop: {}, Address: {}, ID: {:x}, Ref Count: {}", 
+            i, fmt::ptr(prop), prop->GetRef()->GetFormID(),
+            prop->GetRef()->QRefCount()
         );
 
         i++;
@@ -73,7 +102,7 @@ void MES::Scene::PrintAllObj()
 
 MES::Scene::Scene()
 {
-    objs.reserve(static_cast<uint16_t>(maxObj));
+    props.reserve(static_cast<uint16_t>(maxProps));
 }
 
 MES::Scene::~Scene()
@@ -83,74 +112,69 @@ MES::Scene::~Scene()
 
 void MES::Scene::StartPositioning()
 {
-    logger::trace("MES::Scene::StartPositioning");
-
-    // Creates object next to player
-    // dynamic light flicker 0x18fed
-    // torch 0x36343
-    // Actor Vex 1cd90
-
-     RE::TESObjectREFR* ref = CreateObj(0x1cd90);
+    RE::TESObjectREFR* ref = CreateProp(GetCurrentBaseObj());
 
      if (!ref)
          return;
 
-     positionedObj = std::make_unique<SceneObj>(ref);
-     newObj = true;
-     StartPositioning(positionedObj.get());
+     positionedProp = std::make_unique<Prop>(ref);
+     newProp = true;
+     RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(this);
 }
 
 void MES::Scene::StartPositioning(uint8_t index)
 {
-    newObj = false;
-    StartPositioning(objs[index].get());
-}
-
-void MES::Scene::StartPositioning(MES::SceneObj* sceneObj)
-{
-    sceneObj->GetRef()->MoveTo(RE::PlayerCharacter::GetSingleton()->AsReference());
-
+    logger::trace("MES::Scene::StartPositioning");
+    newProp = false;
+    positionedProp = std::make_unique<Prop>(props[index].get()->GetRef());
     RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(this);
 }
 
 void MES::Scene::StopPositioning()
 {
     logger::trace("MES::Scene::StopPositioning");
-    MES::EventProcessor::GetSingleton()->Register();
 
-    if (positionedObj)
+    // If user is currently positioning an object then
+    if (positionedProp)
     {
-        positionedObj->DeleteRef();
-        positionedObj.release();
+        // If new object then clears the object
+        if (newProp)
+        {
+            positionedProp->DeleteRef();
+            newProp = false;
+        }
+
+        // Frees the pointer to the positioned object
+        positionedProp.release();
     }
+
+    RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(this);
 }
 
-void MES::Scene::PlaceObj()
+void MES::Scene::PlaceProp()
 {
-    logger::info("Cunt");
+    logger::trace("MES::Scene::PlaceProp");
+
     // If user is adding a new scene object not modifying existing scene object
-    if (newObj)
+    if (newProp)
     {
         // 1. Adds new object to scene array
-        objs.push_back(std::make_unique<MES::SceneObj>(*(positionedObj.get())));
+        props.push_back(std::make_unique<MES::Prop>(*(positionedProp.get())));
 
         // 2. Updates user interface
         {
             MES::UIManager* ui = MES::UIManager::GetSingleton();
-            ui->GetMenu()->PushItem(positionedObj->GetRef()->GetName());
+            ui->GetMenu()->PushItem(positionedProp->GetRef()->GetName());
         }
 
-        newObj = false;
+        newProp = false;
     }
-
-    RE::BSInputDeviceManager::GetSingleton()->RemoveEventSink(this);
-    positionedObj.release();
+    StopPositioning();
 }
 
-void MES::Scene::SaveSceneData(SKSE::SerializationInterface* intfc) const
+void MES::Scene::SerializeScene(SKSE::SerializationInterface* intfc) const
 {
-    logger::trace("MES::Scene::SaveSceneData");
-    logger::info("Saving scene data!");
+    logger::trace("MES::Scene::SerializeScene");
 
     if (!intfc->OpenRecord(Serialization::kMESID, Serialization::kSerializationVersion))
     {
@@ -158,11 +182,11 @@ void MES::Scene::SaveSceneData(SKSE::SerializationInterface* intfc) const
         return;
     }
 
-    uint8_t size = static_cast<uint8_t>(objs.size());
+    uint8_t size = static_cast<uint8_t>(props.size());
 
     logger::info("Saving size: {} to file.", size);
 
-    // First byte always holds amount of objs
+    // First byte always holds amount of props
     intfc->WriteRecordData(size);
 
     if (size == 0)
@@ -171,7 +195,7 @@ void MES::Scene::SaveSceneData(SKSE::SerializationInterface* intfc) const
         return;
     }
 
-    for (auto& obj : objs)
+    for (auto& obj : props)
     {
         if (!obj->Serialize(intfc))
         {
@@ -180,61 +204,58 @@ void MES::Scene::SaveSceneData(SKSE::SerializationInterface* intfc) const
     }
 }
 
-void MES::Scene::SerializeScene(SKSE::SerializationInterface* intfc, uint8_t objCount)
+void MES::Scene::UnserializeScene(SKSE::SerializationInterface* intfc, uint8_t objCount)
 {
-    logger::info("Getting saved scene data!");
-    
+    logger::trace("MES::Scene::UnserializeScene");
     
     for (uint8_t i = 0u; i < objCount; i++)
     {
-        MES::SceneObj obj;
-        RE::FormID fid;
-        
+        MES::Prop    obj;
+        RE::FormID   fid;
+        RE::TESForm* tesform;
+
+        // Get reference ids of saved props
         intfc->ReadRecordData(fid);
 
-        RE::TESForm* tesform = RE::TESForm::LookupByID(fid);
+        // Checks to see if ref ids exists
+        tesform = RE::TESForm::LookupByID(fid);
 
-        if (tesform != nullptr)
+        if (tesform)
         {
             logger::info(
-                "Unserialising SceneObj {} with formid: {:x}",
+                "Unserialising Prop {} with formid: {:x}",
                 i, fid
             );
 
+            // Adds the stored ref id to the props vector
             obj.SetRef(tesform->AsReference());
+            props.push_back(std::make_unique<Prop>(obj));
         }
         else
         {
             logger::error("Formid {:x} not found!!!", fid);
-            return;
         }
 
-        objs.push_back(std::make_unique<SceneObj>(obj));
     }
 }
 
 void MES::Scene::ClearScene()
 {
     logger::trace("MES::Scene::ClearScene");
-    logger::info("Clearing scene data!!");
 
     // Remove all in game references
-    for (auto& obj : objs)
-    {
-        // Deletes the reference to the object
-        obj->DeleteRef();
-    }
+    for (auto& prop : props)
+        prop->DeleteRef();
 
-    objs.clear();
+    // Clears the container of props
+    props.clear();
 
-    if (positionedObj)
-    {
-        positionedObj->DeleteRef();
-        positionedObj.release();
-    }
+    // Also clears the currently positioned object
+    // TODO test if not StopPositioning works
+    StopPositioning();
 }
 
-RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
+RE::TESObjectREFR* MES::Scene::CreateProp(RE::TESBoundObject* baseObj)
 {
     RE::TESObjectREFR* playerRef = RE::PlayerCharacter::GetSingleton()->AsReference();
 
@@ -251,29 +272,37 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
     }
 
     // If the obj count surpasses maximum size
-    if (objs.size() >= maxObj)
+    if (props.size() >= maxProps)
     {
-        char buffer[256];
-        snprintf(
-            buffer, 256, "Cannot have more than %d scene objects!", maxObj
-        );
+        std::ostringstream oss;
+        oss << "Cannot have more than " << maxProps 
+            << " scene objects!";
 
-        RE::DebugNotification(buffer, "UIMenuOKSD");
+        RE::DebugNotification(oss.str().c_str(), "UIMenuOKSD");
         return nullptr;
     }
 
     // Creates new object reference and places it at player
-    RE::TESObjectREFR* newObjRef = playerRef->PlaceObjectAtMe(baseObj, true).get();
+    RE::TESObjectREFR* newPropRef = playerRef->PlaceObjectAtMe(baseObj, true).get();
 
-    // objs.push_back(std::make_unique<SceneObj>(newObjRef));
-
-    // Handles based on the baseObj form type
+    // Does something based on the prop's form type
     switch (baseObj->GetFormType())
     {
     // If NPC toggles its AI
     case RE::FormType::NPC:
     {
-        // newObjRef->As<RE::Actor>()->EnableAI(false);
+        // newPropRef->As<RE::Actor>()->EnableAI(false);
+        // newPropRef->SetCollision(false);
+    }
+    break;
+    case RE::FormType::Furniture:
+    {
+        // newPropRef->GetLock()->SetLocked(true);
+    }
+    break;
+    case RE::FormType::Light:
+    {
+        newPropRef->SetCollision(false);
     }
     break;
     }
@@ -281,13 +310,13 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::TESBoundObject* baseObj)
     logger::info(
         "Created Object! Type: {}, Base ID: {:x}, Ref ID: {:x},",
         RE::FormTypeToString(baseObj->GetFormType()), baseObj->GetFormID(),
-        newObjRef->GetFormID()
+        newPropRef->GetFormID()
     );
 
-    return newObjRef;
+    return newPropRef;
 }
 
-RE::TESObjectREFR* MES::Scene::CreateObj(RE::FormID baseId)
+RE::TESObjectREFR* MES::Scene::CreateProp(RE::FormID baseId)
 {
     RE::TESForm* obj = RE::TESForm::LookupByID(baseId);
 
@@ -297,6 +326,6 @@ RE::TESObjectREFR* MES::Scene::CreateObj(RE::FormID baseId)
         return nullptr;
     }
 
-    return CreateObj(obj->As<RE::TESBoundObject>());
+    return CreateProp(obj->As<RE::TESBoundObject>());
 }
 

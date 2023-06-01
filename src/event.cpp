@@ -69,7 +69,7 @@ RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 	{
 		// If currently positioning scene object place the object down
 		if (MES::Scene::GetSingleton()->GetPositioned().get())
-			MES::Scene::GetSingleton()->PlaceObj();
+			MES::Scene::GetSingleton()->PlaceProp();
 
 		// If not currently positioning then start positioning
 		else
@@ -92,7 +92,7 @@ RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 		buttonEvt->IsUp()
 	)
 	{
-		MES::Scene::GetSingleton()->PrintAllObj();
+		MES::Scene::GetSingleton()->PrintAllProp();
 	}
 #endif
 
