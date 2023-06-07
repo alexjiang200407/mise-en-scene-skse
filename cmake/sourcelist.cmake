@@ -19,4 +19,5 @@ set(sources ${sources}
 	src/UI.h
 	src/UIManager.cpp
 	src/UIManager.h
+	src/MessageBox.h
 )

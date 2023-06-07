@@ -42,12 +42,13 @@ namespace MES
 		// Creates an object based on id and returns the reference to the object
 		RE::TESObjectREFR* CreateProp(RE::FormID baseId);
 
-
-		static MES::Scene* GetSingleton();
+	// Getters
+	public:
+		static MES::Scene*                  GetSingleton();
 		std::vector<std::unique_ptr<Prop>>& GetProps() { return props; };
-		std::vector<RE::FormID>& GetBoundObjs() { return baseObjIds; };
-		std::unique_ptr<MES::Prop>& GetPositioned() { return positionedProp; };
-		RE::FormID GetCurrentBaseObj() const { return baseObjIds[currentBaseObj]; }
+		std::vector<RE::FormID>&            GetBoundObjs() { return baseObjIds; };
+		std::unique_ptr<MES::Prop>&         GetPositioned() { return positionedProp; };
+		constexpr static std::string_view   GetFileName() { return fileName; };
 
 
 		// Processes the cursor move event
@@ -57,24 +58,20 @@ namespace MES
 		) override;
 		
 
-		void NextBaseObj();
-		void PrevBaseObj();
-
-
-		constexpr static std::string_view GetFileName() { return fileName; };
 
 	// Debug
 	public:
 		void PrintAllProp();
+
+	public:
+		// If the user is placing a new physical prop in the scene, not just readjusting old one
+		bool                               newProp = false;
 
 	private:
 		static constexpr uint8_t           maxProps = 255;
 
 		// All the physical props of the scene, lighting, chairs, etc
 		std::vector<std::unique_ptr<Prop>> props;
-
-		// If the user is placing a new physical prop in the scene, not just readjusting old one
-		bool                               newProp = false;
 
 		// The currently positioned prop
 		std::unique_ptr<Prop>              positionedProp;
@@ -84,6 +81,5 @@ namespace MES
 		
 		// IDs of the base objects / bound objects which can be placed by the user
 		std::vector<RE::FormID>            baseObjIds;
-		uint16_t                           currentBaseObj = 0;
 	};
 }

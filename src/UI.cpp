@@ -42,8 +42,10 @@ MES::MESUI::MESUI()
 		FLAGS::kDisablePauseMenu,
 		FLAGS::kModal
 	);
-
-	menu->inputContext = Context::kNone;
+	
+	// Makes it so tabbing will close the menu after
+	// Messagebox is shown
+	menu->inputContext = Context::kFavor;
 
 	view = menu->uiMovie;
 
@@ -116,25 +118,6 @@ void MES::MESUI::Accept(CallbackProcessor* processor)
 		MES::Scene::GetSingleton()->StartPositioning(static_cast<int8_t>(args[0].GetNumber()));
 	});
 
-	processor->Process("NextBaseObject", [](const RE::FxDelegateArgs& args) 
-	{
-		assert(args.GetArgCount() == 0);
-		auto* scene = MES::Scene::GetSingleton();
-		if (!scene->GetPositioned())
-		{
-			scene->NextBaseObj();
-		}
-	});
-
-	processor->Process("PrevBaseObject", [](const RE::FxDelegateArgs& args) 
-	{
-		assert(args.GetArgCount() == 0);
-		auto* scene = MES::Scene::GetSingleton();
-		if (!scene->GetPositioned())
-		{
-			scene->PrevBaseObj();
-		}
-	});
 }
 
 void MES::MESUI::OpenMenu()
@@ -166,6 +149,7 @@ void MES::MESUI::CloseMenu()
 
 	// Stops positioning
 	MES::Scene::GetSingleton()->StopPositioning();
+	
 
 	// Adds show event to message queue
 	msgQueue->AddMessage(

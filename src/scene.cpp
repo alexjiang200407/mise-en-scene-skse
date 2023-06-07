@@ -3,6 +3,7 @@
 #include "serialization.h"
 #include "UIManager.h"
 #include "event.h"
+#include "MessageBox.h"
 
 MES::Scene* MES::Scene::GetSingleton()
 {
@@ -24,57 +25,40 @@ RE::BSEventNotifyControl MES::Scene::ProcessEvent(RE::InputEvent* const* event, 
 
     }
     break;
-    case RE::INPUT_EVENT_TYPE::kButton:
-    {
-        if ((*event)->AsButtonEvent()->idCode == 42 && (*event)->AsButtonEvent()->IsPressed())
-            doubleDistance = true;
-    }
-    break;
     default:
         return RE::BSEventNotifyControl::kContinue;
     break;
     }
-
-    RE::NiPoint3 collision = RE::CrosshairPickData::GetSingleton()->collisionPoint;
-    auto* player = RE::PlayerCharacter::GetSingleton();
-
-
-    RE::NiPoint3 origin;
-    RE::NiPoint3 directionVec;
+    
+    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+    RE::NiPoint3         collision = RE::CrosshairPickData::GetSingleton()->collisionPoint;
+    RE::NiPoint3         origin;
+    RE::NiPoint3         directionVec;
 
     player->GetEyeVector(origin, directionVec, true);
+    
+    directionVec *= 150.0f;
 
     // X metres ahead of player
-    RE::NiPoint3 lookingAt = origin + (directionVec * 100.0f * (doubleDistance + 1.0f));
+    RE::NiPoint3 lookingAt = origin + directionVec;
 
-    // Move to the collision point
+    // Removes gravity
+    // positionedProp->GetRef()->DetachHavok(positionedProp->GetRef()->Get3D());
+    // positionedProp->GetRef()->SetCollision(false);
+
+    // Move to the collision point if there is something blocking line of sight
     if (collision.GetDistance(origin) < lookingAt.GetDistance(origin))
     {
         positionedProp->GetRef()->SetPosition(collision);
-        positionedProp->GetRef()->SetCollision(false);
-        return RE::BSEventNotifyControl::kContinue;
-    };
-
+    }
     // Move to where player is looking at
-    positionedProp->GetRef()->SetPosition(lookingAt);
-    
+    else
+    {
+        positionedProp->GetRef()->SetPosition(lookingAt);
+    }
+       
     
     return RE::BSEventNotifyControl::kContinue; 
-}
-
-void MES::Scene::NextBaseObj()
-{
-    currentBaseObj++;
-    if (currentBaseObj >= static_cast<uint16_t>(baseObjIds.size()))
-        currentBaseObj = 0u;
-}
-
-void MES::Scene::PrevBaseObj()
-{
-    if (currentBaseObj <= 0)
-        currentBaseObj = static_cast<uint16_t>(baseObjIds.size()) - 1u;
-    else
-        currentBaseObj--;
 }
 
 void MES::Scene::PrintAllProp()
@@ -112,14 +96,34 @@ MES::Scene::~Scene()
 
 void MES::Scene::StartPositioning()
 {
-    RE::TESObjectREFR* ref = CreateProp(GetCurrentBaseObj());
+    std::vector<std::string> buttonText;
+    buttonText.reserve(baseObjIds.size());
 
-     if (!ref)
-         return;
+    for (auto& id : baseObjIds)
+    {
+        RE::TESForm* form = RE::TESForm::LookupByID(id);
+        buttonText.push_back(std::string{ form->GetName() });
+    }
 
-     positionedProp = std::make_unique<Prop>(ref);
-     newProp = true;
-     RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(this);
+    MES::SkyrimMessageBox::Show("Place Prop", buttonText, [](unsigned int i) {
+        MES::Scene* scene = MES::Scene::GetSingleton();
+        RE::TESObjectREFR* ref = scene->CreateProp(scene->GetBoundObjs()[i]);
+
+        if (!ref)
+            return;
+
+        scene->GetPositioned() = std::make_unique<Prop>(ref);
+        scene->newProp = true;
+        RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(scene);
+
+        if (RE::UI::GetSingleton()->GetMenu(RE::MessageBoxMenu::MENU_NAME))
+        {
+            RE::UIMessageQueue* msgQueue = RE::UIMessageQueue::GetSingleton();
+            msgQueue->AddMessage(RE::MessageBoxMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr);
+        };
+
+    });
+
 }
 
 void MES::Scene::StartPositioning(uint8_t index)
@@ -164,6 +168,7 @@ void MES::Scene::PlaceProp()
         // 2. Updates user interface
         {
             MES::UIManager* ui = MES::UIManager::GetSingleton();
+
             ui->GetMenu()->PushItem(positionedProp->GetRef()->GetName());
         }
 
@@ -288,16 +293,10 @@ RE::TESObjectREFR* MES::Scene::CreateProp(RE::TESBoundObject* baseObj)
     // Does something based on the prop's form type
     switch (baseObj->GetFormType())
     {
-    // If NPC toggles its AI
-    case RE::FormType::NPC:
-    {
-        // newPropRef->As<RE::Actor>()->EnableAI(false);
-        // newPropRef->SetCollision(false);
-    }
-    break;
     case RE::FormType::Furniture:
+    case RE::FormType::AlchemyItem:
     {
-        // newPropRef->GetLock()->SetLocked(true);
+
     }
     break;
     case RE::FormType::Light:
