@@ -118,6 +118,23 @@ void MES::MESUI::Accept(CallbackProcessor* processor)
 		MES::Scene::GetSingleton()->StartPositioning(static_cast<int8_t>(args[0].GetNumber()));
 	});
 
+	processor->Process("DeleteCurrent", [](const RE::FxDelegateArgs& args)
+	{
+		assert(args.GetArgCount() == 1);
+		assert(args[0].IsNumber());
+
+		// No item selected
+		if (args[0].GetNumber() < 0)
+			return;
+
+		auto& props = MES::Scene::GetSingleton()->GetProps();
+
+		logger::info("Index {} to be deleted!", static_cast<int8_t>(args[0].GetNumber()));
+
+		props[args[0].GetNumber()]->DeleteRef();
+		props.erase(std::next(props.begin(), args[0].GetNumber()));
+	});
+
 }
 
 void MES::MESUI::OpenMenu()
@@ -148,6 +165,14 @@ void MES::MESUI::CloseMenu()
 	}
 
 	// Stops positioning
+	auto* positioned = MES::Scene::GetSingleton()->GetPositioned().get();
+
+	// Deletes reference if it is new and not placed down yet
+	if (positioned && MES::Scene::GetSingleton()->newProp)
+	{
+		positioned->DeleteRef();
+	}
+
 	MES::Scene::GetSingleton()->StopPositioning();
 	
 

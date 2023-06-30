@@ -100,20 +100,42 @@ void MES::GetSavedBaseObjIds()
     MES::Scene* scene = MES::Scene::GetSingleton();
 
     // Gets saved object ids from json file
-    for (auto& obj : data)
+    for (int i = 0; auto& objType : data)
     {
-        if (!obj.contains("formId") || !obj["formId"].is_string())
+        // Checks if objType object contains right fields
+        if (
+            !objType.contains("objs") || 
+            !objType.contains("objType") || 
+            !objType["objType"].is_string() ||
+            !objType["objs"].is_array()
+        )
             continue;
 
-        // Converts hexadecimal string to integer
-        RE::FormID id = stoi(static_cast<std::string>(obj["formId"]), 0, 16);
+        scene->GetBoundObjs().push_back({ std::string(objType["objType"]).c_str() });
+        scene->GetBoundObjs()[i].objs.reserve(objType["objs"].size());
 
-        // Adds the mod compile index to the start of the id
-        id += (modIndex << (4 * 6));
+        for (auto& obj : objType["objs"])
+        {
 
-        logger::info("Adding Base Object with ID {:x}.", id);
+            if (
+                !obj.is_object() ||
+                !obj.contains("formId") ||
+                !obj.contains("buttonText")
+            )
+                continue;
 
-        scene->GetBoundObjs().push_back(id);
+
+            // Converts hexadecimal string to integer
+            RE::FormID id = stoi(static_cast<std::string>(obj["formId"]), 0, 16);
+
+            // Adds the mod compile index to the start of the id
+            id += (modIndex << (4 * 6));
+
+            logger::info("Adding Base Object of type: {} with ID {:x}. i is {}", objType["objType"], id, i);
+
+            scene->GetBoundObjs()[i].objs.push_back({ id, std::string(obj["buttonText"]).c_str() });
+        }
+        i++;
     }
 }
 

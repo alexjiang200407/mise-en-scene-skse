@@ -64,12 +64,14 @@ RE::BSEventNotifyControl MES::EventProcessor::ProcessEvent(
 	// If E (18) is pressed then places down the light
 	else if (
 		MES::UIManager::GetSingleton()->isOpen && dxScancode == 18 &&
-		buttonEvt->IsUp()
+		buttonEvt->IsPressed() && !buttonEvt->IsRepeating()
 	)
 	{
 		// If currently positioning scene object place the object down
 		if (MES::Scene::GetSingleton()->GetPositioned().get())
+		{
 			MES::Scene::GetSingleton()->PlaceProp();
+		}
 
 		// If not currently positioning then start positioning
 		else

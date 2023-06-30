@@ -15,48 +15,8 @@ RE::BSEventNotifyControl MES::Scene::ProcessEvent(RE::InputEvent* const* event, 
 {
     if (!event || !(*event))
         return RE::BSEventNotifyControl::kContinue;
-
-    bool doubleDistance = false;
-
-    switch ((*event)->GetEventType())
-    {
-    case RE::INPUT_EVENT_TYPE::kMouseMove:
-    {
-
-    }
-    break;
-    default:
-        return RE::BSEventNotifyControl::kContinue;
-    break;
-    }
-    
-    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-    RE::NiPoint3         collision = RE::CrosshairPickData::GetSingleton()->collisionPoint;
-    RE::NiPoint3         origin;
-    RE::NiPoint3         directionVec;
-
-    player->GetEyeVector(origin, directionVec, true);
-    
-    directionVec *= 150.0f;
-
-    // X metres ahead of player
-    RE::NiPoint3 lookingAt = origin + directionVec;
-
-    // Removes gravity
-    // positionedProp->GetRef()->DetachHavok(positionedProp->GetRef()->Get3D());
-    // positionedProp->GetRef()->SetCollision(false);
-
-    // Move to the collision point if there is something blocking line of sight
-    if (collision.GetDistance(origin) < lookingAt.GetDistance(origin))
-    {
-        positionedProp->GetRef()->SetPosition(collision);
-    }
-    // Move to where player is looking at
-    else
-    {
-        positionedProp->GetRef()->SetPosition(lookingAt);
-    }
-       
+   
+    positionedProp->MoveToLooking();
     
     return RE::BSEventNotifyControl::kContinue; 
 }
@@ -96,34 +56,8 @@ MES::Scene::~Scene()
 
 void MES::Scene::StartPositioning()
 {
-    std::vector<std::string> buttonText;
-    buttonText.reserve(baseObjIds.size());
-
-    for (auto& id : baseObjIds)
-    {
-        RE::TESForm* form = RE::TESForm::LookupByID(id);
-        buttonText.push_back(std::string{ form->GetName() });
-    }
-
-    MES::SkyrimMessageBox::Show("Place Prop", buttonText, [](unsigned int i) {
-        MES::Scene* scene = MES::Scene::GetSingleton();
-        RE::TESObjectREFR* ref = scene->CreateProp(scene->GetBoundObjs()[i]);
-
-        if (!ref)
-            return;
-
-        scene->GetPositioned() = std::make_unique<Prop>(ref);
-        scene->newProp = true;
-        RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(scene);
-
-        if (RE::UI::GetSingleton()->GetMenu(RE::MessageBoxMenu::MENU_NAME))
-        {
-            RE::UIMessageQueue* msgQueue = RE::UIMessageQueue::GetSingleton();
-            msgQueue->AddMessage(RE::MessageBoxMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr);
-        };
-
-    });
-
+    logger::trace("MES::Scene::StartPositioning");
+    OpenChooseObjMenu();
 }
 
 void MES::Scene::StartPositioning(uint8_t index)
@@ -144,7 +78,8 @@ void MES::Scene::StopPositioning()
         // If new object then clears the object
         if (newProp)
         {
-            positionedProp->DeleteRef();
+            /*logger::info("SHIET");
+            positionedProp->DeleteRef();*/
             newProp = false;
         }
 
@@ -262,6 +197,7 @@ void MES::Scene::ClearScene()
 
 RE::TESObjectREFR* MES::Scene::CreateProp(RE::TESBoundObject* baseObj)
 {
+    logger::trace("MES::Scene::CreateProp");
     RE::TESObjectREFR* playerRef = RE::PlayerCharacter::GetSingleton()->AsReference();
 
     if (!baseObj)
@@ -287,24 +223,14 @@ RE::TESObjectREFR* MES::Scene::CreateProp(RE::TESBoundObject* baseObj)
         return nullptr;
     }
 
-    // Creates new object reference and places it at player
-    RE::TESObjectREFR* newPropRef = playerRef->PlaceObjectAtMe(baseObj, true).get();
+    // Random Test Cell
+    RE::TESForm* cell = RE::TESForm::LookupByID(0x4e227);
 
-    // Does something based on the prop's form type
-    switch (baseObj->GetFormType())
-    {
-    case RE::FormType::Furniture:
-    case RE::FormType::AlchemyItem:
-    {
-
-    }
-    break;
-    case RE::FormType::Light:
-    {
-        newPropRef->SetCollision(false);
-    }
-    break;
-    }
+    // Creates new object reference and places it at a test cell
+    auto newPropRef = RE::TESDataHandler::GetSingleton()->CreateReferenceAtLocation(
+        baseObj, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f}, cell->As<RE::TESObjectCELL>(), nullptr,
+        nullptr, nullptr, {}, false, false
+    ).get().get();
 
     logger::info(
         "Created Object! Type: {}, Base ID: {:x}, Ref ID: {:x},",
@@ -326,5 +252,86 @@ RE::TESObjectREFR* MES::Scene::CreateProp(RE::FormID baseId)
     }
 
     return CreateProp(obj->As<RE::TESBoundObject>());
+}
+
+void MES::Scene::OpenChooseObjMenu()
+{
+    std::vector<std::string> buttonText;
+
+    // buttonText for the object types
+    {
+        MES::Scene* scene = MES::Scene::GetSingleton();
+
+        buttonText.reserve(scene->GetBoundObjs().size());
+
+        // Shows all the possible types
+        for (auto& type : scene->GetBoundObjs())
+        {
+            buttonText.push_back(type.typeStr);
+        }
+    }
+
+    buttonText.push_back("Back");
+    
+    MES::SkyrimMessageBox::Show("Choose Type", buttonText, [](unsigned int type) {
+        MES::Scene* scene = MES::Scene::GetSingleton();
+
+        // Does nothing if selected index is greater than amount of object types
+        // This includes selecting back
+        if (type >= scene->GetBoundObjs().size())
+        {
+            MES::SkyrimMessageBox::Hide();
+            return;
+        }
+
+        
+        // Now choose the object
+        {
+
+            std::vector<std::string> buttonText;
+
+            buttonText.reserve(scene->GetBoundObjs()[type].objs.size());
+
+            // Message
+            for (auto& obj : scene->GetBoundObjs()[type].objs)
+            {
+                RE::TESForm* form = RE::TESForm::LookupByID(obj.baseId);
+                buttonText.push_back(std::string{ obj.buttonTxt });
+            }
+
+            buttonText.push_back("Back");
+
+            // After player chooses an object, start moving it around
+            MES::SkyrimMessageBox::Show("Choose Color", buttonText, 
+            [type](unsigned int obj) 
+            {
+                MES::Scene* scene = MES::Scene::GetSingleton();
+
+                // Does nothing if selected index is greater than amount of bound objects
+                // This includes selecting back
+
+                if (obj >= scene->GetBoundObjs()[type].objs.size())
+                {
+                    MES::SkyrimMessageBox::Hide();
+                    return;
+                }
+
+                RE::TESObjectREFR* ref = scene->CreateProp(scene->GetBoundObjs()[type][obj].baseId);
+
+                if (!ref)
+                    return;
+
+                scene->GetPositioned() = std::make_unique<Prop>(ref);
+                scene->newProp = true;
+
+                MES::SkyrimMessageBox::Hide();
+
+                // Start moving the prop around
+                RE::BSInputDeviceManager::GetSingleton()->AddEventSink<RE::InputEvent*>(scene);
+            });
+        }
+
+    });
+
 }
 

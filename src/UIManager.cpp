@@ -21,18 +21,17 @@ bool MES::UIManager::OpenMenu()
 	RE::UI* ui = RE::UI::GetSingleton();
 
 	// Checks if another menu is open
-	for (auto& menu : ui->menuStack)
+	if (
+		ui->IsModalMenuOpen() ||
+		ui->IsMenuOpen(RE::Console::MENU_NAME) ||
+		ui->IsItemMenuOpen()
+	)
 	{
-		if (
-			!menu->AlwaysOpen() ||
-			menu->Modal() ||
-			menu->FreezeFramePause()
-		)
-		{
-			logger::warn("Another menu is open, cannot open MES menu!!!");
-			return false;
-		}
+		logger::warn("Another menu is open, cannot open MES menu!!!");
+		return false;
 	}
+
+	
 
 	MES::MESUI::OpenMenu();
 

@@ -17,6 +17,37 @@ namespace MES
 		Scene& operator=(const Scene&) = delete;
 		Scene& operator=(Scene&&) = delete;
 
+
+	public:
+		struct BaseObj
+		{
+			BaseObj(RE::FormID id)
+				: baseId(id)
+			{};
+
+			BaseObj(RE::FormID id, const char text[256])
+				: baseId(id)
+			{
+				strcpy_s(buttonTxt, text);
+			};
+
+			char buttonTxt[256] = "NULL";
+			RE::FormID baseId;
+		};
+
+		struct BaseObjType
+		{
+			BaseObjType(const char type[256])
+			{
+				strcpy_s(typeStr, type);
+			};
+
+			char typeStr[256] = "NULL";
+			std::vector<BaseObj> objs = {};
+
+			BaseObj& operator[](int i) { return objs[i]; };
+		};
+
 	public:
 		// If player is adding new object to the scene
 		void StartPositioning();
@@ -25,6 +56,7 @@ namespace MES
 		void StartPositioning(uint8_t index);
 	
 		void StopPositioning();
+
 		void PlaceProp();
 
 		// Serializes the scene's data to file
@@ -42,13 +74,16 @@ namespace MES
 		// Creates an object based on id and returns the reference to the object
 		RE::TESObjectREFR* CreateProp(RE::FormID baseId);
 
+		// First Player chooses the object type from the message box
+		static void OpenChooseObjMenu();
+
 	// Getters
 	public:
-		static MES::Scene*                  GetSingleton();
-		std::vector<std::unique_ptr<Prop>>& GetProps() { return props; };
-		std::vector<RE::FormID>&            GetBoundObjs() { return baseObjIds; };
-		std::unique_ptr<MES::Prop>&         GetPositioned() { return positionedProp; };
-		constexpr static std::string_view   GetFileName() { return fileName; };
+		static MES::Scene*                    GetSingleton();
+		std::vector<std::unique_ptr<Prop>>&   GetProps() { return props; };
+		std::vector<BaseObjType>&             GetBoundObjs() { return baseObjs; };
+		std::unique_ptr<MES::Prop>&           GetPositioned() { return positionedProp; };
+		constexpr static std::string_view     GetFileName() { return fileName; };
 
 
 		// Processes the cursor move event
@@ -65,21 +100,21 @@ namespace MES
 
 	public:
 		// If the user is placing a new physical prop in the scene, not just readjusting old one
-		bool                               newProp = false;
+		bool                                 newProp = false;
 
 	private:
-		static constexpr uint8_t           maxProps = 255;
+		static constexpr uint8_t             maxProps = 255;
 
 		// All the physical props of the scene, lighting, chairs, etc
-		std::vector<std::unique_ptr<Prop>> props;
+		std::vector<std::unique_ptr<Prop>>   props;
 
 		// The currently positioned prop
-		std::unique_ptr<Prop>              positionedProp;
+		std::unique_ptr<Prop>                positionedProp;
 
 		// Name of the file
-		static constexpr std::string_view  fileName{ "MiseEnScene.esp" };
+		static constexpr std::string_view    fileName{ "MiseEnScene.esp" };
 		
 		// IDs of the base objects / bound objects which can be placed by the user
-		std::vector<RE::FormID>            baseObjIds;
+		std::vector<BaseObjType> baseObjs;
 	};
 }

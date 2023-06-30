@@ -16,14 +16,49 @@ void MES::Prop::SetRef(RE::TESObjectREFR* rhs)
     pRef = rhs;
 }
 
-bool MES::Prop::DeleteRef()
+void MES::Prop::DeleteRef()
 {
+    using FLAGS = RE::TESObjectREFR::InGameFormFlag;
     // Marks reference for deletion 
     // it is cleared next time a save is loaded
+    logger::info("Deleting ref {:x}", pRef->formID);
+
     pRef->Disable();
     pRef->SetDelete(true);
+}
 
-    return true;
+void MES::Prop::MoveToLooking()
+{
+    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+    RE::NiPoint3         collision = RE::CrosshairPickData::GetSingleton()->collisionPoint;
+    RE::NiPoint3         origin;
+    RE::NiPoint3         directionVec;
+
+    player->GetEyeVector(origin, directionVec, false);
+
+    directionVec *= 50.0f;
+
+    // X metres ahead of player
+    RE::NiPoint3 lookingAt = origin + directionVec;
+
+    if (
+        pRef->GetParentCell() != player->GetParentCell() ||
+        pRef->GetWorldspace() != player->GetWorldspace()
+    )
+    {
+        pRef->MoveTo(player);
+    }
+
+    // Move to the collision point if there is something blocking line of sight
+    if (collision.GetDistance(origin) < lookingAt.GetDistance(origin))
+    {
+        pRef->SetPosition(collision);
+    }
+    // Move to where player is looking at
+    else
+    {
+        pRef->SetPosition(lookingAt);
+    }
 }
 
 bool MES::Prop::Serialize(SKSE::SerializationInterface* intfc) const

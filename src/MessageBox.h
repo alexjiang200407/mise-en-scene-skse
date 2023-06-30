@@ -34,6 +34,15 @@ namespace MES {
             for (auto text : buttonTextValues) messagebox->buttonText.push_back(text.c_str());
             messagebox->QueueMessage();
         }
+
+        static void Hide()
+        {
+            if (RE::UI::GetSingleton()->GetMenu(RE::MessageBoxMenu::MENU_NAME))
+            {
+                RE::UIMessageQueue* msgQueue = RE::UIMessageQueue::GetSingleton();
+                msgQueue->AddMessage(RE::MessageBoxMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kForceHide, nullptr);
+            };
+        }
     };
 
     void ShowMessageBox(const std::string& bodyText, std::vector<std::string> buttonTextValues,
