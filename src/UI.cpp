@@ -44,7 +44,7 @@ MES::MESUI::MESUI()
 	);
 	
 	// Makes it so tabbing will close the menu after
-	// Messagebox is shown
+	// messagebox is shown
 	menu->inputContext = Context::kFavor;
 
 	view = menu->uiMovie;
@@ -127,12 +127,11 @@ void MES::MESUI::Accept(CallbackProcessor* processor)
 		if (args[0].GetNumber() < 0)
 			return;
 
-		auto& props = MES::Scene::GetSingleton()->GetProps();
-
 		logger::info("Index {} to be deleted!", static_cast<int8_t>(args[0].GetNumber()));
 
-		props[args[0].GetNumber()]->DeleteRef();
-		props.erase(std::next(props.begin(), args[0].GetNumber()));
+		int index = static_cast<int>(args[0].GetNumber());
+
+		MES::Scene::GetSingleton()->DeleteProp(index);
 	});
 
 }
@@ -148,7 +147,7 @@ void MES::MESUI::OpenMenu()
 	}
 
 
-	// Adds show event to message queue
+	// Adds show event to Message queue
 	msgQueue->AddMessage(
 		MESUI::MENU_NAME, RE::UI_MESSAGE_TYPE::kShow, nullptr
 	);
@@ -176,7 +175,7 @@ void MES::MESUI::CloseMenu()
 	MES::Scene::GetSingleton()->StopPositioning();
 	
 
-	// Adds show event to message queue
+	// Adds show event to Message queue
 	msgQueue->AddMessage(
 		MESUI::MENU_NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr
 	);

@@ -1,3 +1,4 @@
+#pragma once
 #include "MES.h"
 #include <nlohmann/json.hpp>
 #include <string>
@@ -80,7 +81,7 @@ void MES::GetSavedBaseObjIds()
     using json = nlohmann::json;
 
     std::ifstream file{ ".\\Data\\SKSE\\Plugins\\MiseEnScene.json" };
-    uint32_t      modIndex = GetPluginCompileIndex();
+    uint32_t      modIndex = GetPluginCompileIndex(MES::Scene::GetFileName());
 
     if (!file.is_open())
     {
@@ -90,7 +91,6 @@ void MES::GetSavedBaseObjIds()
 
     if (modIndex == 0)
     {
-        logger::error("{} not found!", MES::Scene::GetFileName());
         return;
     }
 
@@ -106,12 +106,18 @@ void MES::GetSavedBaseObjIds()
         if (
             !objType.contains("objs") || 
             !objType.contains("objType") || 
+            !objType.contains("messageTxt") ||
             !objType["objType"].is_string() ||
+            !objType["messageTxt"].is_string() ||
             !objType["objs"].is_array()
         )
             continue;
 
-        scene->GetBoundObjs().push_back({ std::string(objType["objType"]).c_str() });
+        scene->GetBoundObjs().push_back(Scene::BaseObjType{ 
+            std::string(objType["objType"]).c_str(), 
+            std::string(objType["messageTxt"]).c_str() 
+        });
+
         scene->GetBoundObjs()[i].objs.reserve(objType["objs"].size());
 
         for (auto& obj : objType["objs"])
@@ -129,7 +135,7 @@ void MES::GetSavedBaseObjIds()
             RE::FormID id = stoi(static_cast<std::string>(obj["formId"]), 0, 16);
 
             // Adds the mod compile index to the start of the id
-            id += (modIndex << (4 * 6));
+            id |= modIndex;
 
             logger::info("Adding Base Object of type: {} with ID {:x}. i is {}", objType["objType"], id, i);
 
@@ -139,18 +145,35 @@ void MES::GetSavedBaseObjIds()
     }
 }
 
-uint8_t MES::GetPluginCompileIndex()
+uint32_t MES::GetPluginCompileIndex(std::string_view fileName)
 {
-    RE::TESDataHandler* dhnd = RE::TESDataHandler::GetSingleton();
+    auto index = RE::TESDataHandler::GetSingleton()->GetLoadedModIndex(fileName);
 
-    for (const auto& file : dhnd->files)
+    // Is an esp file
+    if (index.has_value())
     {
-        if (file->GetFilename() == MES::Scene::GetFileName())
-        {
-            logger::info("ESP load order {:x}", file->compileIndex);
-            return file->compileIndex;
-        }
+        logger::info("ESP load order {:x}", index.value());
+        return index.value() << 24;
     }
+
+    // Is a light file
+    if (RE::TESDataHandler::GetSingleton()->LookupLoadedLightModByName(fileName))
+    {
+        auto lightIndex = RE::TESDataHandler::GetSingleton()->GetLoadedLightModIndex(fileName);
+        if (lightIndex.has_value())
+        {
+            logger::info("ESP load order {:x}", index.value());
+            return ((0xfe << 12) | index.value()) << 12;
+        }
+    };
+
+    std::ostringstream oss;
+    oss << MES::Scene::GetFileName()
+        << "not loaded!";
+
+    RE::DebugNotification(oss.str().c_str());
+
+    logger::error("{} not loaded", MES::Scene::GetFileName().data());
 
     return 0;
 }

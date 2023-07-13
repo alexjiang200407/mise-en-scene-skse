@@ -78,8 +78,6 @@ void MES::Scene::StopPositioning()
         // If new object then clears the object
         if (newProp)
         {
-            /*logger::info("SHIET");
-            positionedProp->DeleteRef();*/
             newProp = false;
         }
 
@@ -191,8 +189,19 @@ void MES::Scene::ClearScene()
     props.clear();
 
     // Also clears the currently positioned object
-    // TODO test if not StopPositioning works
     StopPositioning();
+}
+
+void MES::Scene::DeleteProp(uint8_t index)
+{
+    Prop* toBeDeleted = props[index].get();
+
+    if (positionedProp && positionedProp->GetRef() == toBeDeleted->GetRef())
+        StopPositioning();
+
+
+    props[index]->DeleteRef();
+    props.erase(std::next(props.begin(), index));
 }
 
 RE::TESObjectREFR* MES::Scene::CreateProp(RE::TESBoundObject* baseObj)
@@ -226,10 +235,16 @@ RE::TESObjectREFR* MES::Scene::CreateProp(RE::TESBoundObject* baseObj)
     // Random Test Cell
     RE::TESForm* cell = RE::TESForm::LookupByID(0x4e227);
 
+    if (!cell)
+    {
+        logger::error("Cell not found {}", 0x4e227);
+        return nullptr;
+    }
+
     // Creates new object reference and places it at a test cell
     auto newPropRef = RE::TESDataHandler::GetSingleton()->CreateReferenceAtLocation(
         baseObj, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f}, cell->As<RE::TESObjectCELL>(), nullptr,
-        nullptr, nullptr, {}, false, false
+        nullptr, nullptr, {}, true, false
     ).get().get();
 
     logger::info(
@@ -271,9 +286,9 @@ void MES::Scene::OpenChooseObjMenu()
         }
     }
 
-    buttonText.push_back("Back");
+    buttonText.push_back("Cancel");
     
-    MES::SkyrimMessageBox::Show("Choose Type", buttonText, [](unsigned int type) {
+    MES::SkyrimMessageBox::Show("Choose Type:", buttonText, [](unsigned int type) {
         MES::Scene* scene = MES::Scene::GetSingleton();
 
         // Does nothing if selected index is greater than amount of object types
@@ -294,15 +309,12 @@ void MES::Scene::OpenChooseObjMenu()
 
             // Message
             for (auto& obj : scene->GetBoundObjs()[type].objs)
-            {
-                RE::TESForm* form = RE::TESForm::LookupByID(obj.baseId);
                 buttonText.push_back(std::string{ obj.buttonTxt });
-            }
 
-            buttonText.push_back("Back");
+            buttonText.push_back("Cancel");
 
             // After player chooses an object, start moving it around
-            MES::SkyrimMessageBox::Show("Choose Color", buttonText, 
+            MES::SkyrimMessageBox::Show(scene->GetBoundObjs()[type].msgTxt, buttonText,
             [type](unsigned int obj) 
             {
                 MES::Scene* scene = MES::Scene::GetSingleton();

@@ -37,12 +37,14 @@ namespace MES
 
 		struct BaseObjType
 		{
-			BaseObjType(const char type[256])
+			BaseObjType(const char type[256], const char msg[256])
 			{
 				strcpy_s(typeStr, type);
+				strcpy_s(msgTxt, msg);
 			};
 
 			char typeStr[256] = "NULL";
+			char msgTxt[256] = "";
 			std::vector<BaseObj> objs = {};
 
 			BaseObj& operator[](int i) { return objs[i]; };
@@ -68,13 +70,16 @@ namespace MES
 		// Clears the scene's data
 		void ClearScene();
 
+		// Deletes a prop
+		void DeleteProp(uint8_t index);
+
 		// Creates an object based on base object
 		RE::TESObjectREFR* CreateProp(RE::TESBoundObject* baseObj);
 
 		// Creates an object based on id and returns the reference to the object
 		RE::TESObjectREFR* CreateProp(RE::FormID baseId);
 
-		// First Player chooses the object type from the message box
+		// First Player chooses the object type from the Message box
 		static void OpenChooseObjMenu();
 
 	// Getters

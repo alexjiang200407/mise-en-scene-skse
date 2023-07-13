@@ -4,6 +4,7 @@
 #include "serialization.h"
 #include "UIManager.h"
 
+
 namespace MES 
 {
     // Initialises Mise-En-Scene
@@ -15,7 +16,7 @@ namespace MES
     // Unregisters Event Handlers
     void UnregisterEventHandler();
 
-    // Process SKSE system messages, save / load game etc.
+    // Process SKSE system Messages, save / load game etc.
     void ProcessSysMessages(SKSE::MessagingInterface::Message* msg);
 
     // Get the BoundObjects / base object IDs saved in json file
@@ -24,5 +25,5 @@ namespace MES
 
     // Gets the plugin compile index.
     // Returns 0 if not found
-    uint8_t GetPluginCompileIndex();
+    uint32_t GetPluginCompileIndex(std::string_view fileName);
 }

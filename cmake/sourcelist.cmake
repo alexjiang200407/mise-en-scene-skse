@@ -9,8 +9,6 @@ set(sources ${sources}
 	src/scene.cpp
 	src/utility.h
 	src/utility.cpp
-	src/err.cpp
-	src/err.h
 	src/prop.cpp
 	src/prop.h
 	src/serialization.h

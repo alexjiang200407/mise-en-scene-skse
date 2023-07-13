@@ -18,9 +18,9 @@ void MES::Prop::SetRef(RE::TESObjectREFR* rhs)
 
 void MES::Prop::DeleteRef()
 {
-    using FLAGS = RE::TESObjectREFR::InGameFormFlag;
     // Marks reference for deletion 
     // it is cleared next time a save is loaded
+
     logger::info("Deleting ref {:x}", pRef->formID);
 
     pRef->Disable();
